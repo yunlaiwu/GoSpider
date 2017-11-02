@@ -27,14 +27,16 @@ func NewWorkerPool(vol int) *WorkerPool {
     }
 
     pool := &WorkerPool{
-        workers:   make([]*worker, vol),
+        workers:   make([]*worker, 0),
         closeChan: make(chan struct{}),
     }
 
-    for i, _ := range pool.workers {
-        pool.workers[i] = newWorker(i, 1024, pool.closeChan)
-        if pool.workers[i] == nil {
+    for i := 0; i<vol; i++ {
+        worker := newWorker(i, 1024, pool.closeChan)
+        if worker == nil {
             panic("failed to create worker")
+        }else {
+            pool.workers = append(pool.workers, worker)
         }
     }
 
