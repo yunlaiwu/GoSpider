@@ -5,7 +5,6 @@ import (
     "os"
     "sync"
     "strings"
-    "errors"
 )
 
 type BookStore struct {
@@ -41,4 +40,6 @@ func (self *BookStore) Start(bookListFile, doneFilePath string) (err error) {
         }
         self.doneMap.Store(parts[0], parts[1])
     }
+
+    return nil
 }
