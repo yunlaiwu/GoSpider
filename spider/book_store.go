@@ -39,7 +39,6 @@ func (self *BookStore) Start(bookListFile, doneFilePath string) (err error) {
             //report error here
             continue
         }
-
         self.doneMap.Store(parts[0], parts[1])
     }
 }
