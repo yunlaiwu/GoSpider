@@ -5,6 +5,7 @@ import (
     "fmt"
     "strconv"
     "strings"
+    "encoding/json"
 )
 
 type BOOK_COMMENT struct {
@@ -36,16 +37,20 @@ func NewBookComment() *BOOK_COMMENT {
     return &BOOK_COMMENT{}
 }
 
-func NewBookReview() *BOOK_REVIEW {
-    return &BOOK_REVIEW{}
-}
-
 func (self BOOK_COMMENT) String() string {
     return fmt.Sprintf("短评: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v, 内容:%v", self.username, self.userid, self.userpage, self.publish_date, self.rate, self.useful, self.content)
 }
 
+func NewBookReview() *BOOK_REVIEW {
+    return &BOOK_REVIEW{}
+}
+
 func (self BOOK_REVIEW) String() string {
-    return fmt.Sprintf("书评 %v: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v, 标题:%v, 内容:%v", self.review_id, self.username, self.userid, self.userpage, self.publish_date, self.rate, self.useful, self.title, self.content)
+    return fmt.Sprintf("书评 %v: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v|%v, 标题:%v, 内容:%v", self.review_id, self.username, self.userid, self.userpage, self.publish_date, self.rate, self.useful, self.useless,self.title, self.content)
+}
+
+func (self BOOK_REVIEW) GetId() string {
+    return self.review_id
 }
 
 func ParseRating(r string) int {
@@ -66,7 +71,7 @@ func ParseRating(r string) int {
     }
 }
 
-func GetUserIdFromUserPage(r string) string {
+func ParseUserIdFromUserPage(r string) string {
     //like "https://www.douban.com/people/48942518/"， so it get "48942518"
     r = strings.ToLower(r)
     r = strings.Replace(r, "https://www.douban.com/people/", "", -1)
@@ -74,6 +79,18 @@ func GetUserIdFromUserPage(r string) string {
     r = strings.TrimSpace(r)
     r = strings.Trim(r, "/")
     return r
+}
+
+func ParseUseful(r string) int {
+    //like "有用 0" "没用 0"
+    r = strings.Replace(r, "有用", "", -1)
+    r = strings.Replace(r, "没用", "", -1)
+    r = strings.TrimSpace(r)
+    if count, err := strconv.Atoi(r); err == nil {
+        return count
+    }
+
+    return 0
 }
 
 /*
@@ -175,17 +192,17 @@ func ParseBookComment(htm string) (comments []*BOOK_COMMENT, err error) {
  * 从这个获取详情，https://book.douban.com/j/review/8883176/full
  * liujia: 为了少缓存东西，从书评的分页page中获取每个书评的id，然后从书评详情中抓取
  */
-func ParseBookReviewListPage(htm string) (reviewIds []string, err error) {
+func ParseBookReviewListPage(htm string) (reviews []*BOOK_REVIEW, err error) {
     nodes, err := goquery.ParseString(htm)
     if err != nil {
         fmt.Println("ParseBookReview: failed parse html")
-        return reviewIds, err
+        return reviews, err
     }
 
     reviewNodes := nodes.Find(".review-list")
 
     //用户id
-    reviewIds = make([]string, 0)
+    reviewIds := make([]string, 0)
     reviewNodes.Find(".main").Each(func(index int, item *goquery.Node) {
         for _, attr := range item.Attr {
             if attr.Key == "id" {
@@ -194,9 +211,6 @@ func ParseBookReviewListPage(htm string) (reviewIds []string, err error) {
         }
     })
 
-    return reviewIds, nil
-
-    /*
     reviews = make([]*BOOK_REVIEW, len(reviewIds))
     for i := range reviews {
         review := NewBookReview()
@@ -225,6 +239,7 @@ func ParseBookReviewListPage(htm string) (reviewIds []string, err error) {
                     }
                 }
 
+                /*
                 if class == "author-avatar" {
                     for _, child2 := range child.Child {
                         if child2.Data == "img" {
@@ -235,9 +250,9 @@ func ParseBookReviewListPage(htm string) (reviewIds []string, err error) {
                             }
                         }
                     }
-                }else if class == "author" {
+                }else*/ if class == "author" {
                     reviews[i].userpage = href
-                    reviews[i].userid = GetUserIdFromUserPage(href)
+                    reviews[i].userid = ParseUserIdFromUserPage(href)
                     for _, child2 := range child.Child {
                         if child2.Data == "span" {
                             if len(child2.Child) > 0 {
@@ -273,13 +288,13 @@ func ParseBookReviewListPage(htm string) (reviewIds []string, err error) {
     }
 
     return reviews, nil
-    */
 }
 
 
 /*
- * 豆瓣图书的书评详情，https://book.douban.com/review/8857096/#comments
+ * 豆瓣图书的书评详情，https://book.douban.com/review/8857096/#comments(https://book.douban.com/review/8857096/也行)
  * 这个url:https://book.douban.com/j/review/8883176/full，拿到json样子的，里面body字段如同上面页面的信息
+ * 这个有问题，因为评论内容拿不全
  */
 func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
     nodes, err := goquery.ParseString(htm)
@@ -290,32 +305,70 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
 
     bookReview = NewBookReview()
 
+    //获取reviewId，其实也可以外部填写，不过这里获取一下可以和外部比较，作为是否正确抓取的一个对照
+    reviewItemNodes := nodes.Find(".main")
+    for _, item := range reviewItemNodes {
+        for _, attr := range item.Attr {
+            if attr.Key == "id" {
+                bookReview.review_id = attr.Val
+            }
+        }
+    }
+
+    //书评名
+    titleNodes := nodes.Find(".book-content")
+    for _, item := range titleNodes {
+        for _, child:= range item.Child {
+            isTitle := false
+            for _, attr := range child.Attr {
+                if attr.Key == "id" && attr.Val == "content" {
+                    isTitle = true
+                }
+            }
+
+            if isTitle {
+                isTitle = false
+                for _, child2 := range child.Child {
+                    if child2.Data == "h1" && len(child2.Child) > 0 {
+                        for _, child3 := range child2.Child {
+                            for _, attr := range child3.Attr {
+                                if attr.Key == "property" && attr.Val == "v:summary" {
+                                    isTitle = true
+                                }
+                            }
+                            if isTitle && len(child3.Child) > 0 {
+                                bookReview.title = child3.Child[0].Data
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    //发表书皮用户的id 主页，发布时间
     mainHDNodes := nodes.Find(".main-hd")
 	for _, item := range mainHDNodes {
-		fmt.Println("item data:", item.Data)
-		for _, attr := range item.Attr {
-			fmt.Println("item attr:", attr.Key, attr.Val)
-		}
-
 		for _, child := range item.Child {
-			fmt.Println("item child data:", child.Data)
-			for _, attr := range child.Attr {
-				fmt.Println("item child attr:", attr.Key, attr.Val)
-			}
+            for _, attr := range child.Attr {
+                if attr.Key == "class" && strings.HasPrefix(attr.Val, "allstar") {
+                    bookReview.rate = ParseRating(attr.Val)
+                }else if attr.Key == "class" && attr.Val == "main-meta" {
+                    if len(child.Child) > 0 {
+                        bookReview.publish_date = child.Child[0].Data
+                    }
+                }
+            }
 
 			for _, child2 := range child.Child {
-				fmt.Println("item child2 attr:", child2.Data)
 				for _, attr := range child2.Attr {
-					fmt.Println("item child2 attr:", attr.Key, attr.Val)
-
 					if attr.Key == "property" && attr.Val == "v:reviewer" {
 						if len(child2.Child) > 0 {
 							bookReview.username = child2.Child[0].Data
-
 							for _, attr := range child.Attr {
-								if attr.Key == "span" {
+								if attr.Key == "href" {
 									bookReview.userpage = attr.Val
-									bookReview.userid = GetUserIdFromUserPage(attr.Val)
+									bookReview.userid = ParseUserIdFromUserPage(attr.Val)
 								}
 							}
 						}
@@ -325,7 +378,53 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
 		}
 	}
 
+	//内容 (这里还可以拿用户名，不过上面已经拿过了)
+    contentNodes := nodes.Find(".review-content")
+    for _, item := range contentNodes {
+        for _, child := range item.Child {
+            bookReview.content += child.Data
+        }
+    }
+
+    //有用？无用？
+    usefulNodes := nodes.Find(".main-panel-useful")
+    for _, item := range usefulNodes {
+        for _, child := range item.Child {
+            if child.Data == "button" {
+                for _, attr := range child.Attr {
+                    if attr.Key == "class" && strings.HasPrefix(attr.Val, "btn") && len(child.Child) > 0 {
+                        if strings.Contains(attr.Val, "useful_count") {
+                            bookReview.useful = ParseUseful(child.Child[0].Data)
+                        }else if strings.Contains(attr.Val, "useless_count") {
+                            bookReview.useless = ParseUseful(child.Child[0].Data)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fmt.Println(bookReview)
+
 	return bookReview, nil
+}
+
+func ParseReviewJson(resp []byte) (content string, useful, useless int, err error) {
+    type JsonReview struct {
+        //Body    string       `json:"body"`
+        Votes   struct{
+            Useful     int  `json:"useful_count"`
+            Useless    int  `json:"useless_count"`
+        }  `json:"votes"`
+        Html    string      `json:"html"`
+    }
+
+    var review JsonReview
+    if err := json.Unmarshal(resp, &review); err == nil {
+        return review.Html, review.Votes.Useful, review.Votes.Useless, nil
+    }else {
+        return "", 0, 0, err
+    }
 }
 
 /*

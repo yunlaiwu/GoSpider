@@ -17,6 +17,7 @@ func Test_ParseBookComment(t *testing.T) {
 }
 */
 
+/*
 func Test_ParseBookReview(t *testing.T) {
     htm, err := spider.HttpGet("https://book.douban.com/subject/1083428/reviews?sort=time")
     if err != nil {
@@ -40,4 +41,30 @@ func Test_ParseBookReview(t *testing.T) {
         t.FailNow()
     }
     spider.ParseBookReviewPage(string(htm))
+}
+*/
+
+func Test_ParseBookReview2(t *testing.T) {
+    htm, err := spider.HttpGet("https://book.douban.com/subject/1083428/reviews?sort=time")
+    if err != nil {
+        t.FailNow()
+    }
+
+    reviews, err := spider.ParseBookReviewListPage(string(htm))
+    if err != nil {
+        t.FailNow()
+    }
+
+    for _, review := range reviews {
+        fmt.Println(review.GetId())
+    }
+
+    reviewId := reviews[0].GetId()
+    reviewUrl := fmt.Sprintf("https://book.douban.com/j/review/%v/full", reviewId)
+    fmt.Println("review full url", reviewUrl)
+    htm, err = spider.HttpGet(reviewUrl)
+    if err != nil {
+        t.FailNow()
+    }
+    spider.ParseReviewJson(htm)
 }
