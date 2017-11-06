@@ -8,6 +8,38 @@ import (
     "time"
 )
 
+type DownTask struct {
+    res string
+    url string
+    cb  ICallbacker
+    params map[string]string
+}
+
+func NewDownTask(res string, url string, cb  ICallbacker, params map[string]string) *DownTask {
+    return &DownTask{
+        res: res,
+        url: url,
+        cb: cb,
+        params:params,
+    }
+}
+
+func NewDownTaskWihtouParam(res string, url string, cb  ICallbacker) *DownTask {
+    return &DownTask{
+        res: res,
+        url: url,
+        cb: cb,
+        params:nil,
+    }
+}
+
+func (self DownTask) Valid() bool {
+    if len(self.res) == 0 || len(self.url) == 0 || self.cb == nil {
+        return false
+    }
+    return true
+}
+
 type UrlMgr struct {
     doneFile *os.File
     doneMap  map[string]int64
@@ -61,44 +93,36 @@ func (self *UrlMgr) Stop()  {
     close(self.urlChan)
 }
 
-func (self *UrlMgr) Push(url string) {
-    if len(url) == 0 {
+func (self *UrlMgr) Push(task *DownTask) {
+    if task == nil || !task.Valid() {
         return
     }
 
-    if _, exist := self.doneMap[url]; exist {
+    if _, exist := self.doneMap[task.url]; exist {
         return
     }
 
     self.taskListLock.Lock()
     defer self.taskListLock.Unlock()
-    self.taskList.PushBack(url)
+    self.taskList.PushBack(task)
 }
 
-func (self *UrlMgr) Pop() (url string, err error) {
+func (self *UrlMgr) Pop() (task *DownTask, err error) {
     self.taskListLock.Lock()
     defer self.taskListLock.Unlock()
 
     if self.taskList.Len() > 0 {
         first := self.taskList.Front()
-        url = first.Value.(string)
+        task = first.Value.(*DownTask)
         self.taskList.Remove(first)
-        return url, nil
+        return task, nil
     }else {
-        return "", errors.New("no url at this time")
+        return nil, errors.New("no url at this time")
     }
 }
 
-func (self *UrlMgr) OnFinished(handledUrl string, success bool) (newUrl string) {
-    if !success {
-        logErrorf("Failed to download HTML for %v", handledUrl)
-        self.Push(handledUrl)
-        return
-    }
-
+func (self *UrlMgr) UrlDone(handledUrl string) {
     self.doneMap[handledUrl] = TimeMillSecond()
-    self.urlChan <- handledUrl
-    return ""
 }
 
 func (self *UrlMgr) run() {

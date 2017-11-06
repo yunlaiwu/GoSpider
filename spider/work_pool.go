@@ -43,7 +43,7 @@ func NewWorkerPool(vol int) *WorkerPool {
     return pool
 }
 
-func (wp *WorkerPool) Put(k interface{}, cb func()) error {
+func (wp *WorkerPool) Put(cb func()) error {
     return wp.workers[rand.Intn(10000) % len(wp.workers)].put(workerFunc(cb))
 }
 
