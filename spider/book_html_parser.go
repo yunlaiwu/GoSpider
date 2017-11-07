@@ -6,6 +6,7 @@ import (
     "strconv"
     "strings"
     "encoding/json"
+    "errors"
 )
 
 type BOOK_COMMENT struct {
@@ -33,7 +34,7 @@ type BOOK_REVIEW struct {
     useless         int
 }
 
-func NewBookComment() *BOOK_COMMENT {
+func NewBOOK_COMMENT() *BOOK_COMMENT {
     return &BOOK_COMMENT{}
 }
 
@@ -41,7 +42,7 @@ func (self BOOK_COMMENT) String() string {
     return fmt.Sprintf("短评: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v, 内容:%v", self.username, self.userid, self.userpage, self.publish_date, self.rate, self.useful, self.content)
 }
 
-func NewBookReview() *BOOK_REVIEW {
+func NewBOOK_REVIEW() *BOOK_REVIEW {
     return &BOOK_REVIEW{}
 }
 
@@ -117,7 +118,7 @@ func ParseBookComment(htm string) (comments []*BOOK_COMMENT, err error) {
 
     comments = make([]*BOOK_COMMENT, len(userids))
     for i, _ := range comments {
-        comment := NewBookComment()
+        comment := NewBOOK_COMMENT()
         comment.userid = userids[i]
         comments[i] = comment
     }
@@ -179,9 +180,10 @@ func ParseBookComment(htm string) (comments []*BOOK_COMMENT, err error) {
         }
     })
 
+    /*
     for _, comment := range comments {
         fmt.Println(comment)
-    }
+    }*/
 
     return comments, nil
 }
@@ -213,7 +215,7 @@ func ParseBookReviewListPage(htm string) (reviews []*BOOK_REVIEW, err error) {
 
     reviews = make([]*BOOK_REVIEW, len(reviewIds))
     for i := range reviews {
-        review := NewBookReview()
+        review := NewBOOK_REVIEW()
         review.review_id = reviewIds[i]
         reviews[i] = review
     }
@@ -303,7 +305,7 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
         return bookReview, err
     }
 
-    bookReview = NewBookReview()
+    bookReview = NewBOOK_REVIEW()
 
     //获取reviewId，其实也可以外部填写，不过这里获取一下可以和外部比较，作为是否正确抓取的一个对照
     reviewItemNodes := nodes.Find(".main")
@@ -425,6 +427,34 @@ func ParseReviewJson(resp []byte) (content string, useful, useless int, err erro
     }else {
         return "", 0, 0, err
     }
+}
+
+func ParseTotalComments(resp string) (totalComments int, err error) {
+    nodes, err := goquery.ParseString(resp)
+    if err != nil {
+        fmt.Println("ParseTotalComments: failed parse html")
+        return 0, err
+    }
+
+    commentsNodes := nodes.Find(".comments-wrapper")
+    for _, item := range commentsNodes {
+        for _, child := range item.Child {
+            for _, child2  := range child.Child {
+                for _, attr := range child2.Attr {
+                    if attr.Key == "id" && attr.Val == "total-comments" {
+                        if len(child2.Child) > 0 {
+                            s := child2.Child[0].Data
+                            s = strings.Replace(s, "全部共", "", -1)
+                            s = strings.Replace(s, "条", "", -1)
+                            s = strings.TrimSpace(s)
+                            return strconv.Atoi(s)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0, errors.New("ParseTotalComments: parse html failed, cannnot found")
 }
 
 /*

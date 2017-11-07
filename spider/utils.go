@@ -10,6 +10,8 @@ import (
     "time"
     "fmt"
     "path/filepath"
+    "runtime"
+    "strconv"
 )
 
 func ReadFileLines(fi *os.File) (ret *list.List, err error) {
@@ -66,4 +68,49 @@ func GetFullPath(relPath string) (fullPath string) {
     } else {
         return relPath
     }
+}
+
+//文件是否存在
+func FileExist(path string) bool {
+    if fi, err := os.Stat(path); err == nil {
+        if fi.IsDir() == false {
+            return true
+        }
+    }
+    return false
+}
+
+//文件夹是否存在
+func DirExist(path string) bool {
+    if fi, err := os.Stat(path); err == nil {
+        if fi.IsDir() == true {
+            return true
+        }
+    }
+    return false
+}
+
+//不存在则创建
+func CreateDirIfNotExist(path string) (err error) {
+    if DirExist(path) == false {
+        err = os.MkdirAll(path, 0777)
+        if err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+/*
+ * 获取当前的goroutine的id，这个俺也是从网上抄的
+ */
+func GoID() int {
+    var buf [64]byte
+    n := runtime.Stack(buf[:], false)
+    idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+    id, err := strconv.Atoi(idField)
+    if err != nil {
+        panic(fmt.Sprintf("cannot get goroutine id: %v", err))
+    }
+    return id
 }

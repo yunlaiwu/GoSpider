@@ -105,7 +105,8 @@ func myPrintf(format string, args ...interface{})  {
     if PRINT_TO_CONSOLE == false {
         return
     }
-    fmt.Printf(format, args...)
+    s := fmt.Sprintf(format, args...)
+    fmt.Printf("[thread %v] %v", GoID(), s)
     //哥就是为了输出看着舒服些。。。
     if strings.Contains(format, "\n") == false {
         fmt.Println("")

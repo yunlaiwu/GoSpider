@@ -55,11 +55,13 @@ func NewProxyMgr() *ProxyMgr  {
 }
 
 func (self *ProxyMgr) Start()  {
-    go self.run()
+    logInfo("ProxyMgr:Start, start")
+    //go self.run()
 }
 
 func (self *ProxyMgr) Stop()  {
-    self.finishChan <- struct{}{}
+    logInfo("ProxyMgr:Stop, to stop...")
+    //self.finishChan <- struct{}{}
 
     close(self.finishChan)
     close(self.getChan)
@@ -137,8 +139,11 @@ func (self *ProxyMgr) getIndex() int {
 }
 
 func (self *ProxyMgr) getProxy() string {
+    /*
     if len(self.proxyList) == 0 {
         return "117.71.159.184:33131"
     }
     return self.proxyList[self.getIndex()]
+    */
+    return ""
 }

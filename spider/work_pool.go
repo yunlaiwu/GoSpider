@@ -32,7 +32,7 @@ func NewWorkerPool(vol int) *WorkerPool {
     }
 
     for i := 0; i<vol; i++ {
-        worker := newWorker(i, 1024, pool.closeChan)
+        worker := newWorker(i, 10000, pool.closeChan)
         if worker == nil {
             panic("failed to create worker")
         }else {

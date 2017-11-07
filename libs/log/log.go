@@ -324,9 +324,9 @@ func (l *Logger) writeLogFormat(level int, log string) {
 
 	var msg string
 	if l.detailInfo {
-		msg = fmt.Sprintf("%s [%s] [%s:%d] [%s] [%s] %s\n", time, flag, file, line, f.Name(), callStack(), log)
+		msg = fmt.Sprintf("[thread:%v] %s [%s] [%s:%d] [%s] [%s] %s\n", GoID(), time, flag, file, line, f.Name(), callStack(), log)
 	} else {
-		msg = fmt.Sprintf("%s [%s] %s\n", time, flag, log)
+		msg = fmt.Sprintf("[thread:%v] %s [%s] %s\n", GoID(), time, flag, log)
 	}
 
 	c := &cmd{level: level, op: "write", log: msg}
