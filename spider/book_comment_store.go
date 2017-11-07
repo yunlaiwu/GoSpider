@@ -14,12 +14,14 @@ type BookCommentStore struct {
     bookList *list.List
     bookListLock sync.Mutex
     doneMap  sync.Map
+    totalCount int
     doneCount int
 }
 
 func NewBookCommentStore() *BookCommentStore {
     return &BookCommentStore{
         bookList:list.New(),
+        totalCount:0,
         doneCount: 0,
     }
 }
@@ -54,7 +56,9 @@ func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
         self.bookList.PushBack(NewBookComment(parts[0], parts[1], self.saveDir))
     }
 
-    comments := self.getComments(3)
+    self.totalCount = self.bookList.Len()
+
+    comments := self.getCommentTask(3)
     for _, comment := range comments {
         comment.Start()
     }
@@ -65,18 +69,22 @@ func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
 func (self *BookCommentStore) OnFinished(id string) {
     self.doneCount +=1
     self.doneMap.Store(id, TimeMillSecond())
-    comments := self.getComments(1)
-    if len(comments) == 0 {
+
+    logInfof("One Task is Done! downloaded %v resources now", self.doneCount)
+
+    comments := self.getCommentTask(1)
+    for _, comment := range comments {
+        comment.Start()
+    }
+
+    if self.totalCount == self.doneCount {
         //都完成了
         logInfof("All Task is Done! total download %v resources", self.doneCount)
-    }else {
-        for _, comment := range comments {
-            comment.Start()
-        }
+        doneChan <- nil
     }
 }
 
-func (self *BookCommentStore) getComments(n int) (comments []*BookComment) {
+func (self *BookCommentStore) getCommentTask(n int) (comments []*BookComment) {
     comments = make([]*BookComment, 0)
     if n < 1 {
         return comments

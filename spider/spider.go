@@ -10,6 +10,7 @@ import (
 var (
     spe      *SpiderEngine
     storeMgr IResStorer
+    doneChan chan error
 )
 
 func main() {
@@ -67,9 +68,15 @@ func main() {
     signals := make(chan os.Signal, 1)
     signal.Notify(signals, os.Interrupt)
 
+    doneChan = make(chan error, 1)
+
     select {
     case <-signals:
         logInfo("Received OS signal, stop spider")
+        spe.Stop()
+        break
+    case <- doneChan:
+        logInfo("Received done signal, stop spider")
         spe.Stop()
         break
     }
