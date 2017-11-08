@@ -14,6 +14,7 @@ type DownTask struct {
     url    string
     cb     IResHunter
     params map[string]string
+    resp   []byte
 }
 
 func NewDownTask(res string, url string, cb IResHunter, params map[string]string) *DownTask {
@@ -43,6 +44,12 @@ func (self DownTask) Valid() bool {
 
 func (self DownTask) String() string {
     return fmt.Sprintf("%v, %v, %v", self.res, self.url, self.params)
+}
+
+func (self DownTask) Process() {
+    if self.cb != nil {
+        self.cb.OnResponse(self.url, self.resp, self.params)
+    }
 }
 
 type UrlMgr struct {

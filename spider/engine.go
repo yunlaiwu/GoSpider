@@ -14,7 +14,8 @@ type SpiderEngine struct{
     callbacks map[string]IResHunter
 
     //cond        *sync.Cond
-    exit        bool
+    finishChan    chan struct{}
+    processChan   chan *DownTask
 }
 
 func NewSpiderEngine() *SpiderEngine {
@@ -23,11 +24,12 @@ func NewSpiderEngine() *SpiderEngine {
     workPool := NewWorkerPool(5)
 
     return &SpiderEngine{
-        exit: false,
         proxyMgr: proxyMgr,
         urlMgr: urlMgr,
         workPool: workPool,
         callbacks: make(map[string]IResHunter),
+        processChan: make(chan *DownTask, 10000),
+        finishChan: make(chan struct{}, 1),
         //cond: sync.NewCond(new(sync.Mutex)),
     }
 }
@@ -36,12 +38,14 @@ func (self *SpiderEngine) Start() {
     self.urlMgr.Start("")
     self.proxyMgr.Start()
 
-    go self.run()
+    go self.downlaod()
+    go self.process()
 }
 
 func (self *SpiderEngine) Stop() {
     logInfo("SpiderEngine:Stop, to stop...")
-    self.exit = true
+    close(self.finishChan)
+    close(self.processChan)
     //self.cond.Signal()
     self.urlMgr.Stop()
     self.proxyMgr.Stop()
@@ -64,7 +68,7 @@ func (self *SpiderEngine) Do(res string, url string, params map[string]string) {
     }
 }
 
-func (self *SpiderEngine) run() {
+func (self *SpiderEngine) downlaod() {
     for{
         /*
         self.cond.L.Lock()
@@ -78,11 +82,10 @@ func (self *SpiderEngine) run() {
         */
 
         select {
+        case <-self.finishChan:
+            logInfo("SpiderEngine:downlaod, recv exit signal!")
+            return
         case <-time.After(1 * time.Second):
-            if self.exit {
-                logInfo("SpiderEngine:run, recv exit signal!")
-                return
-            }
             if tasks, err := self.urlMgr.PopAll(); err == nil {
                 for _, task_  := range tasks {
                     task := task_
@@ -93,11 +96,25 @@ func (self *SpiderEngine) run() {
                             logInfof("SpiderEngine:run, failed to do HTTP GET for %v, %v", task.url, err)
                         }else {
                             logInfof("SpiderEngine:run, recv HTTP resp for %v, len %v", task.url, len(resp))
-                            task.cb.OnResponse(task.url, resp, task.params)
+                            //task.cb.OnResponse(task.url, resp, task.params)
+                            task.resp = resp
+                            self.processChan <- task
                         }
                     })
                 }
             }
+        }
+    }
+}
+
+func (self *SpiderEngine) process() {
+    for{
+        select {
+        case <-self.finishChan:
+            logInfo("SpiderEngine:process, recv exit signal!")
+            return
+        case task := <-self.processChan:
+            task.Process()
         }
     }
 }
