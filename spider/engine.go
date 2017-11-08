@@ -38,7 +38,7 @@ func (self *SpiderEngine) Start() {
     self.urlMgr.Start("")
     self.proxyMgr.Start()
 
-    go self.downlaod()
+    go self.dispatch()
     go self.process()
 }
 
@@ -68,7 +68,15 @@ func (self *SpiderEngine) Do(res string, url string, params map[string]string) {
     }
 }
 
-func (self *SpiderEngine) downlaod() {
+func (self *SpiderEngine) RetryTask(task *DownTask) {
+    if task == nil {
+        return
+    }
+    logInfof("SpiderEngine:RetryTask, retry task %v", task)
+    self.urlMgr.Push(task)
+}
+
+func (self *SpiderEngine) dispatch() {
     for{
         /*
         self.cond.L.Lock()
@@ -83,19 +91,20 @@ func (self *SpiderEngine) downlaod() {
 
         select {
         case <-self.finishChan:
-            logInfo("SpiderEngine:downlaod, recv exit signal!")
+            logInfo("SpiderEngine:dispatch, recv exit signal!")
             return
         case <-time.After(1 * time.Second):
             if tasks, err := self.urlMgr.PopAll(); err == nil {
                 for _, task_  := range tasks {
                     task := task_
-                    logInfof("SpiderEngine:run, got task, %v", task)
+                    logInfof("SpiderEngine:dispatch, got task, %v", task)
                     self.workPool.Put(func(){
                         resp, err := HttpProxyGet(task.url, self.proxyMgr.getProxy())
                         if err != nil {
-                            logInfof("SpiderEngine:run, failed to do HTTP GET for %v, %v", task.url, err)
+                            logWarningf("SpiderEngine:dispatch, failed to do HTTP GET for %v, %v", task.url, err)
+                            self.RetryTask(task)
                         }else {
-                            logInfof("SpiderEngine:run, recv HTTP resp for %v, len %v", task.url, len(resp))
+                            logInfof("SpiderEngine:dispatch, recv HTTP resp for %v, len %v", task.url, len(resp))
                             //task.cb.OnResponse(task.url, resp, task.params)
                             task.resp = resp
                             self.processChan <- task
