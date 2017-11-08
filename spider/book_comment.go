@@ -96,6 +96,7 @@ func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
         go func() {
             self.saveToFile()
             storeMgr.OnFinished(self.bookId)
+            logInfof("%v|%v, write to file finished", self.bookId, self.bookTitle)
         }()
     }
 }

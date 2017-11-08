@@ -56,7 +56,9 @@ func NewProxyMgr() *ProxyMgr  {
 
 func (self *ProxyMgr) Start()  {
     logInfo("ProxyMgr:Start, start")
-    //go self.run()
+    //启动就更新proxy，防止启动顺序不一致，导致启动时拿不到
+    self.updateProxy()
+    go self.run()
 }
 
 func (self *ProxyMgr) Stop()  {
@@ -74,9 +76,6 @@ func (self * ProxyMgr) Get() string {
 }
 
 func (self *ProxyMgr) run()  {
-    //进来就更新proxy
-    self.updateProxy()
-
     for {
         select {
         case <-self.finishChan:
@@ -139,11 +138,8 @@ func (self *ProxyMgr) getIndex() int {
 }
 
 func (self *ProxyMgr) getProxy() string {
-    /*
     if len(self.proxyList) == 0 {
-        return "117.71.159.184:33131"
+        return ""
     }
     return self.proxyList[self.getIndex()]
-    */
-    return ""
 }
