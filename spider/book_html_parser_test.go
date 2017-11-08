@@ -71,6 +71,7 @@ func Test_ParseBookReview2(t *testing.T) {
 }
 */
 
+/*
 func Test_ParseBookTotalComments(t *testing.T) {
     htm, err := spider.HttpGet("https://book.douban.com/subject/27104286/comments/new?p=1")
     if err != nil {
@@ -78,6 +79,21 @@ func Test_ParseBookTotalComments(t *testing.T) {
     }
 
     count, err := spider.ParseTotalComments(string(htm))
+    if err != nil {
+        t.FailNow()
+    }else {
+        fmt.Println(count)
+    }
+}
+*/
+
+func Test_ParseBookTotalReviews(t *testing.T) {
+    htm, err := spider.HttpGet("https://book.douban.com/subject/1000323/reviews?sort=time&start=0")
+    if err != nil {
+        t.FailNow()
+    }
+
+    count, err := spider.ParseTotalReviews(string(htm))
     if err != nil {
         t.FailNow()
     }else {

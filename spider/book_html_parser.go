@@ -119,6 +119,21 @@ func ParseUseful(r string) int {
     return 0
 }
 
+func ParseReviewCount(s string) (count int, err error) {
+    //like "电视人的书评 (42)"
+    parts1 := strings.Split(s, "(")
+    if len(parts1) < 2 {
+        return 0, errors.New("failed to find \"(\" ....")
+    }
+
+    parts2 := strings.Split(parts1[len(parts1)-1], ")")
+    if len(parts2) < 2 {
+        return 0, errors.New("failed to find \")\" ....")
+    }
+
+    return strconv.Atoi(parts2[0])
+}
+
 /*
  * 豆瓣图书的短评，https://book.douban.com/subject/1083428/comments/new
  */
@@ -454,6 +469,9 @@ func ParseReviewJson(resp []byte) (content string, useful, useless int, err erro
     }
 }
 
+/*
+ * 从图书短评分页列表页，获取总的短评个数
+ */
 func ParseTotalComments(resp string) (totalComments int, err error) {
     nodes, err := goquery.ParseString(resp)
     if err != nil {
@@ -480,6 +498,26 @@ func ParseTotalComments(resp string) (totalComments int, err error) {
         }
     }
     return 0, errors.New("ParseTotalComments: parse html failed, cannnot found")
+}
+
+/*
+ * 从图书书评分页列表页，获取总的书评个数
+ */
+func ParseTotalReviews(resp string) (totalComments int, err error) {
+    nodes, err := goquery.ParseString(resp)
+    if err != nil {
+        fmt.Println("ParseTotalReviews: failed parse html")
+        return 0, err
+    }
+
+    titleNodes := nodes.Find("title")
+    for _, item := range titleNodes {
+        for _, child := range item.Child {
+            return ParseReviewCount(child.Data)
+        }
+    }
+
+    return 0, nil
 }
 
 /*
