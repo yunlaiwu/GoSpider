@@ -37,7 +37,7 @@ func SanityString(s string) string {
 
 type DBookJson struct {
     Url    string       `json:"durl"`
-    Title  string       `json:"durl"`
+    Title  string       `json:"title"`
 }
 
 func main() {
@@ -56,7 +56,7 @@ func main() {
         return
     }
 
-    fi, err := os.OpenFile(bookfile, os.O_RDONLY, os.ModePerm)
+    fi, err := os.OpenFile(bookfile, os.O_RDONLY, 0666)
     if err != nil {
         fmt.Println("failed to open bookfile", bookfile)
         return
@@ -64,7 +64,7 @@ func main() {
 
     defer fi.Close()
 
-    fo, err := os.OpenFile(outfile, os.O_WRONLY | os.O_CREATE, os.ModePerm)
+    fo, err := os.OpenFile(outfile, os.O_WRONLY | os.O_CREATE, 0666)
     if err != nil {
         fmt.Println("failed to create output file", outfile)
         return
@@ -88,10 +88,13 @@ func main() {
             fmt.Println("failed to decode json", err)
         }else {
             bookId := DecodeId(book.Url)
-            fo.WriteString(fmt.Sprintf("%v\t%v\n", SanityString(bookId), SanityString(book.Title)))
+            s := fmt.Sprintf("%v\t%v\n", SanityString(bookId), SanityString(book.Title))
+            fmt.Println(book.Title, book.Url)
+            fo.WriteString(s)
         }
     }
 
+    fo.Sync()
     fmt.Println("execute successfully")
 }
 
