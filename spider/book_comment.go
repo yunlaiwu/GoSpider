@@ -43,7 +43,7 @@ func NewBookComment(bookId, bookTitle string, baseFolder string) *BookComment {
 func (self *BookComment) Start() {
     logInfof("%v|%v, start!", self.bookId, self.bookTitle)
     spe.Register(self.getResId(), self)
-    spe.Do(self.getResId(), self.getUrl(1), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(1)})
+    spe.Do(self.getResId(), self.getUrl(1), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(1)})
 }
 
 func (self *BookComment) OnResponse(url string, resp []byte, params map[string]string) {
@@ -61,7 +61,7 @@ func (self *BookComment) OnResponse(url string, resp []byte, params map[string]s
             logInfof("%v|%v, total page %v", self.bookId, self.bookTitle, self.totalPage)
 
             for i := 2; i <= self.totalPage; i++ {
-                spe.Do(self.getResId(), self.getUrl(i), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(i)})
+                spe.Do(self.getResId(), self.getUrl(i), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(i)})
             }
         }
 

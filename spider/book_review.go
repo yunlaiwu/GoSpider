@@ -40,7 +40,7 @@ type BookReview struct {
 
     totalPage int
     pageMapLock sync.Mutex
-    pageMap   map[string]bool
+    pageMap   map[string]([]string)
     reviewMapLock sync.Mutex
     reviewMap map[string]*BOOK_REVIEW
 }
@@ -57,7 +57,7 @@ func NewBookReview(bookId, bookTitle string, baseFolder string) *BookReview {
 func (self *BookReview) Start() {
     logInfof("%v|%v, start!", self.bookId, self.bookTitle)
     spe.Register(self.getResId(), self)
-    spe.Do(self.getResId(), self.getUrl(1), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(1)})
+    spe.Do(self.getResId(), self.getListPageUrl(1), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(1)})
 }
 
 func (self *BookReview) OnResponse(url string, resp []byte, params map[string]string) {
@@ -75,7 +75,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
             logInfof("%v|%v, total page %v", self.bookId, self.bookTitle, self.totalPage)
 
             for i := 2; i <= self.totalPage; i++ {
-                spe.Do(self.getResId(), self.getUrl(i), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(i)})
+                spe.Do(self.getResId(), self.getListPageUrl(i), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(i)})
             }
         }
 
@@ -84,13 +84,30 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
             logErrorf("%v|%v, parse html for reviews failed, %v", self.bookId, self.bookTitle, err)
             storeMgr.OnFinished(self.bookId)
         }else {
-            self.addReviews(page, reviews)
+            self.addPageReviews(page, reviews)
         }
 
-    }else if reviewId, exist := params["reviewId"]; exist {
+    }else if reviewId, exist := params["rid"]; exist {
+        self.reviewMapLock.Lock()
+        defer self.reviewMapLock.Unlock()
+        if review, exist := self.reviewMap[reviewId]; exist && review != nil {
+            if content, useful, useless, err := ParseReviewJson(resp); err == nil {
+                review.content = content
+                review.useful = useful
+                review.useless = useless
+            }else {
+                logErrorf("%v|%v, parse html for review %v, %v", self.bookId, self.bookTitle, reviewId, err)
+            }
+        }else {
+            if !exist {
+                logErrorf("%v|%v, reviewId %v not exist", reviewId)
+            }else {
+                logErrorf("%v|%v, reviewId %v exist but it is nil", reviewId)
+            }
 
-    }
-    else {
+            storeMgr.OnFinished(self.bookId)
+        }
+    } else {
         logErrorf("%v|%v, param error, no page, %v", self.bookId, self.bookTitle, params)
     }
 }
@@ -99,24 +116,42 @@ func (self BookReview) getResId() string {
     return RES_BOOK_REVIEW+"-"+self.bookId
 }
 
-func (self BookReview) getUrl(page int) (string) {
+func (self BookReview) getListPageUrl(page int) (string) {
     return fmt.Sprintf(BOOK_REVIEW_LISTPAGE_URL_FORMAT, self.bookId, (page-1)*20)
 }
 
-func (self *BookReview) addReviews(page string, reviews []*BOOK_REVIEW) {
-    logInfof("BookReview:addReviews, add %d reviews for page %v", len(reviews), page)
-    _, loaded := self.pageMap.LoadOrStore(page, reviews)
-    if loaded == true {
+func (self BookReview) getDetailUrl(rid string) (string) {
+    return fmt.Sprintf(BOOK_REVIEW_DETAIL_URL_FORMAT, self.bookId, rid)
+}
+
+
+func (self *BookReview) addPageReviews(page string, reviews []*BOOK_REVIEW) {
+    logInfof("BookReview:addPageReviews, add %d reviews for page %v", len(reviews), page)
+
+    self.pageMapLock.Lock()
+    self.reviewMapLock.Lock()
+    defer self.pageMapLock.Unlock()
+    defer self.reviewMapLock.Unlock()
+
+    if _, exist := self.pageMap[page];exist {
         logErrorf("%v|%v, page %v maybe downloaed more than once", self.bookId, self.bookTitle, page)
+    }else {
+        reviewIds := make([]string, 0)
+        for _, review := range reviews {
+            reviewIds = append(reviewIds, review.review_id)
+            self.reviewMap[review.review_id] = review
+        }
+        self.pageMap[page] = reviewIds
     }
 
-    n := 0
-    total := 0
-    self.pageMap.Range(func(key, value interface{}) bool {
-        n +=1
-        total += len(value.([]*BOOK_COMMENT))
-        return true
-    })
+    for _, review := range reviews {
+        spe.Do(self.getResId(), self.getDetailUrl(review.review_id), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "rid":review.review_id})
+    }
+}
+
+func (self *BookReview) addReview(rid string, content string, useful, useless int) {
+    totalPages := len(self.pageMap)
+    totalReviews := len(self.reviewMap)
 
     if n == self.totalPage {
         logInfof("%v|%v, download finished, total %v", self.bookId, self.bookTitle, total)
