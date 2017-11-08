@@ -1,9 +1,19 @@
 package main
 
+/*
+ * 这里对应于一本书的所有短评
+ * Start()是入口，首先生成第一页的下载任务，这个任务执行完毕后，在完成回调中，从页面中获取共有多少短评(20个一页)，并计算出总的页数
+ * 然后根据总的页数，生成对应的从第二页到最后一页的任务去执行
+ * 对每个任务，都记录去完成的结果，当完成后，告知BookCommentStore这本书的短评都下完了(OnFinished()接口)，并且对所有短评记录到文件中
+ */
+
+import (
+    "sync"
+    "strconv"
+)
+
 import (
     "fmt"
-    "strconv"
-    "sync"
     "path/filepath"
     "os"
 )

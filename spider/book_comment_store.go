@@ -1,5 +1,13 @@
 package main
 
+/*
+ * 短评获取方式
+ * 拿到一个bookId后，生成一个BookComment对象，保存所有的这些BookComment对象
+ * 首先去完成一个BookComment对象，调用其Start()接口
+ * 这个BookComment对象完成后，会调用OnFinished()接口，我们记录一下(记录个数，并且记录完成的那些ID)
+ * 然后取一个新的BookComment，并Start()
+ */
+
 import (
     "container/list"
     "os"
