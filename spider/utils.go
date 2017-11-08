@@ -114,3 +114,20 @@ func GoID() int {
     }
     return id
 }
+
+//去掉\t \n \r
+func SanityString(s string) string {
+    s = strings.Replace(s, "\t", "", -1)
+    s = strings.Replace(s, "\n", "", -1)
+    s = strings.Replace(s, "\r", "", -1)
+    return s
+}
+
+func Int2String(i int) string {
+    return fmt.Sprintf("%v", i)
+}
+
+func String2Int(s string) int {
+    i, _ := strconv.Atoi(s)
+    return i
+}

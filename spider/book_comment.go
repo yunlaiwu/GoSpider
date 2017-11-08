@@ -4,6 +4,8 @@ import (
     "fmt"
     "strconv"
     "sync"
+    "path/filepath"
+    "os"
 )
 
 const (
@@ -91,6 +93,39 @@ func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
 
     if n == self.totalPage {
         logInfof("%v|%v, download finished, total %v", self.bookId, self.bookTitle, total)
-        storeMgr.OnFinished(self.bookId)
+        go func() {
+            self.saveToFile()
+            storeMgr.OnFinished(self.bookId)
+        }()
     }
+}
+
+func (self BookComment) saveToFile() error {
+    fullpath := GetFullPath(filepath.Join(self.baseFolder, "./book-comment/"))
+    err := CreateDirIfNotExist(fullpath)
+    if err != nil {
+        logErrorf("BookComment:saveToFile, failed to create folder %v", fullpath)
+        return err
+    }
+
+    fullfile := filepath.Join(fullpath, SanityString(self.bookId + "_" + self.bookTitle + ".txt"))
+    f, err := os.OpenFile(fullfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+    if err != nil {
+        return err
+    }
+
+    defer f.Close()
+
+    for i:=1; i<=self.totalPage; i++ {
+        v, ok := self.pageMap.Load(fmt.Sprintf("%v", i))
+        if ok {
+            comments := v.([]*BOOK_COMMENT)
+            for _, comment := range comments {
+                f.WriteString(comment.String() + "\n")
+            }
+        }
+    }
+
+    logErrorf("BookComment:saveToFile, save to file %v successfully", fullfile)
+    return nil
 }

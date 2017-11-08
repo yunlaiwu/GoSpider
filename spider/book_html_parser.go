@@ -10,14 +10,14 @@ import (
 )
 
 type BOOK_COMMENT struct {
-    username        string
     userid          string
+    username        string
     userpage        string
     publish_date    string
     publish_time    int64
     rate            int
-    content         string
     useful          int
+    content         string
 }
 
 type BOOK_REVIEW struct {
@@ -38,8 +38,33 @@ func NewBOOK_COMMENT() *BOOK_COMMENT {
     return &BOOK_COMMENT{}
 }
 
+func COMMENT_FROM_STRING(s string) (bookComment *BOOK_COMMENT) {
+    s = strings.Trim(s, "\n")
+    s = strings.TrimSpace(s)
+    parts := strings.Split(s, "\t")
+    if len(parts) < 7 {
+        return nil
+    }
+
+    bookComment = NewBOOK_COMMENT()
+    bookComment.userid = parts[0]
+    bookComment.username = parts[1]
+    bookComment.userpage = parts[2]
+    bookComment.publish_date = parts[3]
+    bookComment.rate = String2Int(parts[4])
+    bookComment.useful = String2Int(parts[5])
+    bookComment.content = parts[6]
+
+    return bookComment
+}
+
 func (self BOOK_COMMENT) String() string {
-    return fmt.Sprintf("短评: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v, 内容:%v", self.username, self.userid, self.userpage, self.publish_date, self.rate, self.useful, self.content)
+    //return fmt.Sprintf("短评: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v, 内容:%v", self.username, self.userid, self.userpage, self.publish_date, self.rate, self.useful, self.content)
+    ss := []string{self.userid, self.username, self.userpage, self.publish_date, Int2String(self.rate), Int2String(self.useful), self.content}
+    for index, s := range ss {
+        ss[index] = SanityString(s)
+    }
+    return strings.Join(ss, "\t")
 }
 
 func NewBOOK_REVIEW() *BOOK_REVIEW {

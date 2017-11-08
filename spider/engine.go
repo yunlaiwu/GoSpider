@@ -84,7 +84,7 @@ func (self *SpiderEngine) run() {
                 return
             }
             if tasks, err := self.urlMgr.PopAll(); err == nil {
-                for _, task_ := range tasks {
+                for _, task_  := range tasks {
                     task := task_
                     logInfof("SpiderEngine:run, got task, %v", task)
                     self.workPool.Put(func(){
