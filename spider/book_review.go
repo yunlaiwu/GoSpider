@@ -140,7 +140,7 @@ func (self BookReview) getListPageUrl(page int) (string) {
 }
 
 func (self BookReview) getDetailUrl(rid string) (string) {
-    return fmt.Sprintf(BOOK_REVIEW_DETAIL_URL_FORMAT, self.bookId, rid)
+    return fmt.Sprintf(BOOK_REVIEW_DETAIL_URL_FORMAT, rid)
 }
 
 
