@@ -123,7 +123,11 @@ func (self *SpiderEngine) process() {
             logInfo("SpiderEngine:process, recv exit signal!")
             return
         case task := <-self.processChan:
-            task.Process()
+            //这里要判断一下，因为虽然老夫非常小心绝逼不会发个nil对象到这个chan中，但是Stop的时候close(processChan)
+            //会导致这里收到一个nil task，所以还是判断一下比较安全，哥最重视安全的
+            if task != nil {
+                task.Process()
+            }
         }
     }
 }
