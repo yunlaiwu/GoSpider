@@ -131,3 +131,7 @@ func String2Int(s string) int {
     i, _ := strconv.Atoi(s)
     return i
 }
+
+func IsMAC() bool {
+    return runtime.GOOS == "darwin"
+}

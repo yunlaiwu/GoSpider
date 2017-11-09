@@ -48,9 +48,9 @@ func NewProxyMgr() *ProxyMgr  {
     return &ProxyMgr {
         proxyList:  make([]string, 0),
         proxyIndex: 0,
+        finishChan: make(chan struct{}),
         getChan:  make(chan struct{}),
         retChan:  make(chan string),
-        finishChan: make(chan struct{}),
     }
 }
 
@@ -63,8 +63,7 @@ func (self *ProxyMgr) Start()  {
 
 func (self *ProxyMgr) Stop()  {
     logInfo("ProxyMgr:Stop, to stop...")
-    //self.finishChan <- struct{}{}
-
+    self.finishChan <- struct{}{}
     close(self.finishChan)
     close(self.getChan)
     close(self.retChan)
@@ -89,6 +88,11 @@ func (self *ProxyMgr) run()  {
 }
 
 func (self *ProxyMgr) updateProxy() {
+    if IsMAC() {
+        logInfof("DO NOT update proxy on MAC!")
+        return
+    }
+
     resp, err := HttpGet(GET_PROXY_ADDRESS)
     if err != nil {
         logErrorf("failed to update proxy, http get failed %v", err)
