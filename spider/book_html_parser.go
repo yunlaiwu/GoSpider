@@ -21,17 +21,16 @@ type BOOK_COMMENT struct {
 }
 
 type BOOK_REVIEW struct {
-    review_id       string
-    username        string
-    userid          string
-    userpage        string
-    publish_date    string
-    publish_time    int64
-    rate            int
-    title           string
-    content         string
-    useful          int
-    useless         int
+    ReviewId     string     `json:"rid"`
+    UserName     string     `json:"username"`
+    UserId       string     `json:"userid"`
+    UserPage     string     `json:"userpage"`
+    ReviewTitle  string     `json:"title"`
+    PublishDate  string     `json:"publish"`
+    Rate         int        `json:"rate"`
+    Content      string     `json:"content"`
+    Useful       int        `json:"useful"`
+    Useless      int        `json:"useless"`
 }
 
 func NewBOOK_COMMENT() *BOOK_COMMENT {
@@ -72,11 +71,19 @@ func NewBOOK_REVIEW() *BOOK_REVIEW {
 }
 
 func (self BOOK_REVIEW) String() string {
-    return fmt.Sprintf("书评 %v: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v|%v, 标题:%v, 内容:%v", self.review_id, self.username, self.userid, self.userpage, self.publish_date, self.rate, self.useful, self.useless,self.title, self.content)
+    return fmt.Sprintf("书评 %v: 用户:%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v|%v, 标题:%v, 内容:%v", self.ReviewId, self.UserName, self.UserId, self.UserPage, self.PublishDate, self.Rate, self.Useful, self.Useless,self.ReviewTitle, self.Content)
+}
+
+func (self BOOK_REVIEW) Json() (string, error) {
+    j, err := json.Marshal(self)
+    if err != nil {
+        return "", err
+    }
+    return string(j), nil
 }
 
 func (self BOOK_REVIEW) GetId() string {
-    return self.review_id
+    return self.ReviewId
 }
 
 func ParseRating(r string) int {
@@ -256,14 +263,14 @@ func ParseBookReviewListPage(htm string) (reviews []*BOOK_REVIEW, err error) {
     reviews = make([]*BOOK_REVIEW, len(reviewIds))
     for i := range reviews {
         review := NewBOOK_REVIEW()
-        review.review_id = reviewIds[i]
+        review.ReviewId = reviewIds[i]
         reviews[i] = review
     }
 
     //评论title
     reviewNodes.Find(".title-link").Each(func(i int, item *goquery.Node) {
         if len(item.Child) > 0 {
-            reviews[i].title = item.Child[0].Data
+            reviews[i].ReviewTitle = item.Child[0].Data
         }
     })
 
@@ -293,12 +300,12 @@ func ParseBookReviewListPage(htm string) (reviews []*BOOK_REVIEW, err error) {
                         }
                     }
                 }else*/ if class == "author" {
-                    reviews[i].userpage = href
-                    reviews[i].userid = ParseUserIdFromUserPage(href)
+                    reviews[i].UserPage = href
+                    reviews[i].UserId = ParseUserIdFromUserPage(href)
                     for _, child2 := range child.Child {
                         if child2.Data == "span" {
                             if len(child2.Child) > 0 {
-                                reviews[i].username = child2.Child[0].Data
+                                reviews[i].UserName = child2.Child[0].Data
                             }
                         }
                     }
@@ -315,10 +322,10 @@ func ParseBookReviewListPage(htm string) (reviews []*BOOK_REVIEW, err error) {
                 }
 
                 if property == "v:rating" {
-                    reviews[i].rate = ParseRating(class)
+                    reviews[i].Rate = ParseRating(class)
                 }else if property == "v:dtreviewed" && class == "main-meta" {
                     if len(child.Child) > 0 {
-                        reviews[i].publish_date = child.Child[0].Data
+                        reviews[i].PublishDate = child.Child[0].Data
                     }
                 }
             }
@@ -352,7 +359,7 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
     for _, item := range reviewItemNodes {
         for _, attr := range item.Attr {
             if attr.Key == "id" {
-                bookReview.review_id = attr.Val
+                bookReview.ReviewId = attr.Val
             }
         }
     }
@@ -379,7 +386,7 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
                                 }
                             }
                             if isTitle && len(child3.Child) > 0 {
-                                bookReview.title = child3.Child[0].Data
+                                bookReview.ReviewTitle = child3.Child[0].Data
                             }
                         }
                     }
@@ -394,10 +401,10 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
 		for _, child := range item.Child {
             for _, attr := range child.Attr {
                 if attr.Key == "class" && strings.HasPrefix(attr.Val, "allstar") {
-                    bookReview.rate = ParseRating(attr.Val)
+                    bookReview.Rate = ParseRating(attr.Val)
                 }else if attr.Key == "class" && attr.Val == "main-meta" {
                     if len(child.Child) > 0 {
-                        bookReview.publish_date = child.Child[0].Data
+                        bookReview.PublishDate = child.Child[0].Data
                     }
                 }
             }
@@ -406,11 +413,11 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
 				for _, attr := range child2.Attr {
 					if attr.Key == "property" && attr.Val == "v:reviewer" {
 						if len(child2.Child) > 0 {
-							bookReview.username = child2.Child[0].Data
+							bookReview.UserName = child2.Child[0].Data
 							for _, attr := range child.Attr {
 								if attr.Key == "href" {
-									bookReview.userpage = attr.Val
-									bookReview.userid = ParseUserIdFromUserPage(attr.Val)
+									bookReview.UserPage = attr.Val
+									bookReview.UserId = ParseUserIdFromUserPage(attr.Val)
 								}
 							}
 						}
@@ -424,7 +431,7 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
     contentNodes := nodes.Find(".review-content")
     for _, item := range contentNodes {
         for _, child := range item.Child {
-            bookReview.content += child.Data
+            bookReview.Content += child.Data
         }
     }
 
@@ -436,9 +443,9 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
                 for _, attr := range child.Attr {
                     if attr.Key == "class" && strings.HasPrefix(attr.Val, "btn") && len(child.Child) > 0 {
                         if strings.Contains(attr.Val, "useful_count") {
-                            bookReview.useful = ParseUseful(child.Child[0].Data)
+                            bookReview.Useful = ParseUseful(child.Child[0].Data)
                         }else if strings.Contains(attr.Val, "useless_count") {
-                            bookReview.useless = ParseUseful(child.Child[0].Data)
+                            bookReview.Useless = ParseUseful(child.Child[0].Data)
                         }
                     }
                 }

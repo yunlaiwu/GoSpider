@@ -137,6 +137,6 @@ func (self BookComment) saveToFile() error {
         }
     }
 
-    logErrorf("BookComment:saveToFile, save to file %v successfully", fullfile)
+    logInfof("BookComment:saveToFile, save to file %v successfully", fullfile)
     return nil
 }

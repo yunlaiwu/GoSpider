@@ -58,10 +58,13 @@ func main() {
     spe.Start()
 
     go func() {
-        if *restype == "book-comment" {
+        switch *restype {
+        case "book-comment":
             storeMgr = NewBookCommentStore()
-            storeMgr.Start(*resfile, *savedir)
+        case "book-review":
+            storeMgr = NewBookReviewStore()
         }
+        storeMgr.Start(*resfile, *savedir)
     }()
 
     //进程收到的退出信号

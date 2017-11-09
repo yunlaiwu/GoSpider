@@ -38,7 +38,9 @@ type BookReview struct {
     bookTitle string
     baseFolder string
 
-    totalPage int
+    totalPage   int
+    totalReview int
+    totalFinishedReview int
     pageMapLock sync.Mutex
     pageMap   map[string]([]string)
     reviewMapLock sync.Mutex
@@ -51,6 +53,10 @@ func NewBookReview(bookId, bookTitle string, baseFolder string) *BookReview {
         bookTitle:bookTitle,
         baseFolder:baseFolder,
         totalPage:-1,
+        totalReview:-1,
+        totalFinishedReview:-1,
+        pageMap:make(map[string]([]string)),
+        reviewMap:make(map[string]*BOOK_REVIEW),
     }
 }
 
@@ -92,9 +98,22 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
         defer self.reviewMapLock.Unlock()
         if review, exist := self.reviewMap[reviewId]; exist && review != nil {
             if content, useful, useless, err := ParseReviewJson(resp); err == nil {
-                review.content = content
-                review.useful = useful
-                review.useless = useless
+                review.Content = content
+                review.Useful = useful
+                review.Useless = useless
+                self.totalFinishedReview +=1
+
+                //检查是否完成
+                self.pageMapLock.Lock()
+                defer self.pageMapLock.Unlock()
+                if self.totalPage == len(self.pageMap) && self.totalFinishedReview == self.totalReview {
+                    logInfof("%v|%v, download finished, %v pages with %v reviews", self.bookId, self.bookTitle, self.totalPage, self.totalReview)
+                    go func() {
+                        self.saveToFile()
+                        storeMgr.OnFinished(self.bookId)
+                        logInfof("%v|%v, write to file finished", self.bookId, self.bookTitle)
+                    }()
+                }
             }else {
                 logErrorf("%v|%v, parse html for review %v, %v", self.bookId, self.bookTitle, reviewId, err)
             }
@@ -138,28 +157,15 @@ func (self *BookReview) addPageReviews(page string, reviews []*BOOK_REVIEW) {
     }else {
         reviewIds := make([]string, 0)
         for _, review := range reviews {
-            reviewIds = append(reviewIds, review.review_id)
-            self.reviewMap[review.review_id] = review
+            reviewIds = append(reviewIds, review.ReviewId)
+            self.reviewMap[review.ReviewId] = review
         }
         self.pageMap[page] = reviewIds
+        self.totalReview += len(reviews)
     }
 
     for _, review := range reviews {
-        spe.Do(self.getResId(), self.getDetailUrl(review.review_id), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "rid":review.review_id})
-    }
-}
-
-func (self *BookReview) addReview(rid string, content string, useful, useless int) {
-    totalPages := len(self.pageMap)
-    totalReviews := len(self.reviewMap)
-
-    if n == self.totalPage {
-        logInfof("%v|%v, download finished, total %v", self.bookId, self.bookTitle, total)
-        go func() {
-            self.saveToFile()
-            storeMgr.OnFinished(self.bookId)
-            logInfof("%v|%v, write to file finished", self.bookId, self.bookTitle)
-        }()
+        spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "rid":review.ReviewId})
     }
 }
 
@@ -180,15 +186,20 @@ func (self BookReview) saveToFile() error {
     defer f.Close()
 
     for i:=1; i<=self.totalPage; i++ {
-        v, ok := self.pageMap.Load(fmt.Sprintf("%v", i))
-        if ok {
-            comments := v.([]*BOOK_COMMENT)
-            for _, comment := range comments {
-                f.WriteString(comment.String() + "\n")
+        if reviewIds, exist := self.pageMap[fmt.Sprintf("%v", i)]; exist {
+            for _, reviewId := range reviewIds {
+                if review, exist := self.reviewMap[reviewId]; exist {
+                    jstr, err := review.Json()
+                    if err == nil {
+                        f.WriteString(SanityString(jstr) + "\n")
+                    }else {
+                        logErrorf("BookReview:saveToFile, failed to marshal to json, reviewId %v", reviewId)
+                    }
+                }
             }
         }
     }
 
-    logErrorf("BookReview:saveToFile, save to file %v successfully", fullfile)
+    logInfof("BookReview:saveToFile, save to file %v successfully", fullfile)
     return nil
 }
