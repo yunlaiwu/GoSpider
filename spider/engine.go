@@ -4,6 +4,7 @@ import (
     //"strings"
     //"sync"
     "time"
+    "sync"
 )
 
 type SpiderEngine struct{
@@ -11,6 +12,7 @@ type SpiderEngine struct{
     urlMgr      *UrlMgr
     workPool    *WorkerPool
 
+    callbackLock    sync.Mutex
     callbacks map[string]IResHunter
 
     //cond        *sync.Cond
@@ -56,10 +58,14 @@ func (self *SpiderEngine) Register(res string, callbacker IResHunter) {
     if len(res) == 0 && callbacker == nil {
         return
     }
+    self.callbackLock.Lock()
+    defer self.callbackLock.Unlock()
     self.callbacks[res] = callbacker
 }
 
 func (self *SpiderEngine) Do(res string, url string, params map[string]string) {
+    self.callbackLock.Lock()
+    defer self.callbackLock.Unlock()
     if cb, ok := self.callbacks[res]; ok {
         task := NewDownTask(res, url, cb, params)
         logInfof("SpiderEngine:Do, new task, %v", task)
