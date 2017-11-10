@@ -135,3 +135,26 @@ func String2Int(s string) int {
 func IsMAC() bool {
     return runtime.GOOS == "darwin"
 }
+
+func loadDoneTask(dirpath string) (ids map[string]bool) {
+    ids = make(map[string]bool)
+    filepath.Walk(dirpath, func(path string, f os.FileInfo, err error) error {
+        if f == nil || f.IsDir(){
+            return err
+        }
+        if strings.HasSuffix(path, ".txt") == false {
+            return err
+        }
+        filename := filepath.Base(path)
+        //just like 1059419_海边的卡夫卡.txt
+        first := strings.Index(filename, "_")
+        if first == -1 {
+            return err
+        }
+
+        id := filename[0:first]
+        ids[id] = true
+        return nil
+    })
+    return ids
+}

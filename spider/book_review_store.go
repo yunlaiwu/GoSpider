@@ -49,6 +49,8 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
         return err
     }
 
+    bidDone := loadDoneTask(self.saveDir)
+
     for elem := lines.Front(); elem != nil; elem = elem.Next() {
         //每行是用\t分割的 bookID和bookTitle
         parts := strings.Split(elem.Value.(string) , "\t")
@@ -57,7 +59,11 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
             continue
         }
 
-        self.bookList.PushBack(NewBookReview(parts[0], parts[1], self.saveDir))
+        if _, exist := bidDone[parts[0]]; !exist {
+            self.bookList.PushBack(NewBookReview(parts[0], parts[1], self.saveDir))
+        }else {
+            logInfof("book review for %v|%v is already downloaded", parts[0], parts[1])
+        }
     }
 
     self.totalCount = self.bookList.Len()

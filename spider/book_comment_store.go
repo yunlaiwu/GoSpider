@@ -13,6 +13,7 @@ import (
     "os"
     "sync"
     "strings"
+    "path/filepath"
 )
 
 type BookCommentStore struct {
@@ -37,7 +38,12 @@ func NewBookCommentStore() *BookCommentStore {
 func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
     logInfo("BookCommentStore:Start, start")
     self.booksFile = booksFile
-    self.saveDir = saveDir
+    self.saveDir = GetFullPath(filepath.Join(saveDir, "./book-comment/"))
+    err = CreateDirIfNotExist(self.saveDir)
+    if err != nil {
+        logErrorf("BookComment:saveToFile, failed to create folder %v", self.saveDir)
+        return err
+    }
 
     bookFile, err := os.Open(self.booksFile)
     if err != nil {
@@ -53,6 +59,8 @@ func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
         return err
     }
 
+    bidDone := loadDoneTask(self.saveDir)
+
     for elem := lines.Front(); elem != nil; elem = elem.Next() {
         //每行是用\t分割的 bookID和bookTitle
         parts := strings.Split(elem.Value.(string) , "\t")
@@ -61,10 +69,19 @@ func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
             continue
         }
 
-        self.bookList.PushBack(NewBookComment(parts[0], parts[1], self.saveDir))
+        if _, exist := bidDone[parts[0]]; !exist {
+            self.bookList.PushBack(NewBookComment(parts[0], parts[1], self.saveDir))
+        }else {
+            logInfof("book comment for %v|%v is already downloaded", parts[0], parts[1])
+        }
     }
 
     self.totalCount = self.bookList.Len()
+    if self.totalCount == 0 {
+        //啥都没有
+        logInfof("NO TASK! total download %v resources", self.doneCount)
+        doneChan <- nil
+    }
 
     comments := self.getCommentTask(3)
     for _, comment := range comments {

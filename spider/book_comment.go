@@ -112,14 +112,7 @@ func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
 }
 
 func (self BookComment) saveToFile() error {
-    fullpath := GetFullPath(filepath.Join(self.baseFolder, "./book-comment/"))
-    err := CreateDirIfNotExist(fullpath)
-    if err != nil {
-        logErrorf("BookComment:saveToFile, failed to create folder %v", fullpath)
-        return err
-    }
-
-    fullfile := filepath.Join(fullpath, SanityString(self.bookId + "_" + self.bookTitle + ".txt"))
+    fullfile := filepath.Join(self.baseFolder, SanityString(self.bookId + "_" + self.bookTitle + ".txt"))
     f, err := os.OpenFile(fullfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
     if err != nil {
         return err
