@@ -5,6 +5,7 @@ import (
     "flag"
     "os"
     "os/signal"
+    "time"
 )
 
 var (
@@ -83,6 +84,9 @@ func main() {
         spe.Stop()
         break
     }
+
+    logInfof("wait 15 secs to make all file sync to disk!")
+    time.Sleep(15*time.Second)
 
     logInfo("exit spider process")
 }
