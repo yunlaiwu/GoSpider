@@ -9,6 +9,7 @@ import (
     "os"
     "sync"
     "strings"
+    "path/filepath"
 )
 
 type BookReviewStore struct {
@@ -49,7 +50,7 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
         return err
     }
 
-    bidDone := loadDoneTask(self.saveDir)
+    bidDone := loadDoneTask(GetFullPath(filepath.Join(self.saveDir, "./book-review/")))
 
     for elem := lines.Front(); elem != nil; elem = elem.Next() {
         //每行是用\t分割的 bookID和bookTitle

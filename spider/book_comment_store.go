@@ -59,7 +59,7 @@ func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
         return err
     }
 
-    bidDone := loadDoneTask(self.saveDir)
+    bidDone := loadDoneTask(GetFullPath(filepath.Join(self.saveDir, "./book-comment/")))
 
     for elem := lines.Front(); elem != nil; elem = elem.Next() {
         //每行是用\t分割的 bookID和bookTitle
