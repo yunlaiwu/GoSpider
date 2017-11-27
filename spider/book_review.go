@@ -115,7 +115,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
                     }()
                 }
             }else {
-                logErrorf("%v|%v, parse html for review %v failed, %v", self.bookId, self.bookTitle, reviewId, err)
+                logErrorf("%v|%v, parse html for review %v failed, %v, %v", self.bookId, self.bookTitle, reviewId, err, string(resp))
                 // 豆瓣有可能返回错误信息，由于UA或者访问过多什么原因，这里重试
                 spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-review", "rid":review.ReviewId})
             }
