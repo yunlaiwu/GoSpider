@@ -63,7 +63,7 @@ func NewBookReview(bookId, bookTitle string, baseFolder string) *BookReview {
 func (self *BookReview) Start() {
     logInfof("%v|%v, start!", self.bookId, self.bookTitle)
     spe.Register(self.getResId(), self)
-    spe.Do(self.getResId(), self.getListPageUrl(1), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(1)})
+    spe.Do(self.getResId(), self.getListPageUrl(1), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-review", "page":strconv.Itoa(1)})
 }
 
 func (self *BookReview) OnResponse(url string, resp []byte, params map[string]string) {
@@ -81,7 +81,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
             logInfof("%v|%v, total page %v", self.bookId, self.bookTitle, self.totalPage)
 
             for i := 2; i <= self.totalPage; i++ {
-                spe.Do(self.getResId(), self.getListPageUrl(i), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(i)})
+                spe.Do(self.getResId(), self.getListPageUrl(i), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-review", "page":strconv.Itoa(i)})
             }
         }
 
@@ -115,7 +115,9 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
                     }()
                 }
             }else {
-                logErrorf("%v|%v, parse html for review %v, %v", self.bookId, self.bookTitle, reviewId, err)
+                logErrorf("%v|%v, parse html for review %v failed, %v", self.bookId, self.bookTitle, reviewId, err)
+                // 豆瓣有可能返回错误信息，由于UA或者访问过多什么原因，这里重试
+                spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-review", "rid":review.ReviewId})
             }
         }else {
             if !exist {
@@ -127,7 +129,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
             storeMgr.OnFinished(self.bookId)
         }
     } else {
-        logErrorf("%v|%v, param error, no page, %v", self.bookId, self.bookTitle, params)
+        logErrorf("%v|%v, param error, no page no rid, %v", self.bookId, self.bookTitle, params)
     }
 }
 
@@ -165,7 +167,7 @@ func (self *BookReview) addPageReviews(page string, reviews []*BOOK_REVIEW) {
     }
 
     for _, review := range reviews {
-        spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "rid":review.ReviewId})
+        spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-review", "rid":review.ReviewId})
     }
 }
 

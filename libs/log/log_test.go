@@ -59,7 +59,6 @@ func Test_GetLogFileAndNextTime(t *testing.T) {
 }
 
 func Test_Base(t *testing.T) {
-	fmt.Println("1111!")
 	conf := logger.NewLogConfig("log.conf")
 	err := conf.LoadConfig()
 	if err != nil {

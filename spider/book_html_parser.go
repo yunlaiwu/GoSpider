@@ -99,7 +99,6 @@ func ParseRating(r string) int {
     if err == nil {
         return rate
     }else {
-        fmt.Println(r)
         return 0
     }
 }
@@ -332,9 +331,11 @@ func ParseBookReviewListPage(htm string) (reviews []*BOOK_REVIEW, err error) {
         }
     })
 
+    /*
     for _, comment := range reviews {
         fmt.Println(comment)
     }
+    */
 
     return reviews, nil
 }
@@ -452,8 +453,6 @@ func ParseBookReviewPage(htm string) (bookReview *BOOK_REVIEW, err error) {
             }
         }
     }
-
-    fmt.Println(bookReview)
 
 	return bookReview, nil
 }
