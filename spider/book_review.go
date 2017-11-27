@@ -24,6 +24,7 @@ import (
     "fmt"
     "path/filepath"
     "os"
+    "strings"
 )
 
 const (
@@ -66,6 +67,19 @@ func (self *BookReview) Start() {
     spe.Do(self.getResId(), self.getListPageUrl(1), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-review", "page":strconv.Itoa(1)})
 }
 
+func (self *BookReview) checkFinish() {
+    self.pageMapLock.Lock()
+    defer self.pageMapLock.Unlock()
+    if self.totalPage == len(self.pageMap) && self.totalFinishedReview == self.totalReview {
+        logInfof("%v|%v, download finished, %v pages with %v reviews", self.bookId, self.bookTitle, self.totalPage, self.totalReview)
+        go func() {
+            self.saveToFile()
+            storeMgr.OnFinished(self.bookId)
+            logInfof("%v|%v, write to file finished", self.bookId, self.bookTitle)
+        }()
+    }
+}
+
 func (self *BookReview) OnResponse(url string, resp []byte, params map[string]string) {
     logInfof("BookReview:OnResponse, url:%v, params:%v", url, params)
     if page,exist := params["page"]; exist {
@@ -104,20 +118,23 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
                 self.totalFinishedReview +=1
 
                 //检查是否完成
-                self.pageMapLock.Lock()
-                defer self.pageMapLock.Unlock()
-                if self.totalPage == len(self.pageMap) && self.totalFinishedReview == self.totalReview {
-                    logInfof("%v|%v, download finished, %v pages with %v reviews", self.bookId, self.bookTitle, self.totalPage, self.totalReview)
-                    go func() {
-                        self.saveToFile()
-                        storeMgr.OnFinished(self.bookId)
-                        logInfof("%v|%v, write to file finished", self.bookId, self.bookTitle)
-                    }()
-                }
+                self.checkFinish()
             }else {
                 logErrorf("%v|%v, parse html for review %v failed, %v, %v", self.bookId, self.bookTitle, reviewId, err, string(resp))
                 // 豆瓣有可能返回错误信息，由于UA或者访问过多什么原因，这里重试
-                spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-review", "rid":review.ReviewId})
+                respString := string(resp)
+                if strings.Contains(respString, "<html") && strings.Contains(respString, "<title>") && strings.Contains(respString, "没有访问权限") {
+                    //这种情况是这个书评的详情无权访问，例子：view-source:https://book.douban.com/j/review/5440030/full
+                    review.Content = ""
+                    review.Useful = 0
+                    review.Useless = 0
+                    self.totalFinishedReview += 1
+
+                    //检查是否完成
+                    self.checkFinish()
+                } else {
+                    spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid": self.bookId, "title": self.bookTitle, "res": "book-review", "rid": review.ReviewId})
+                }
             }
         }else {
             if !exist {

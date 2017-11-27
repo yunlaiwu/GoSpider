@@ -105,7 +105,8 @@ func Test_ParseBookTotalReviews(t *testing.T) {
 
 func Test_ParseBookReviewFullJson(t *testing.T) {
     //htm, err := spider.HttpGet("https://book.douban.com/j/review/6653108/full")
-    htm, err := spider.HttpGet("https://book.douban.com/j/review/7636302/full")
+    //htm, err := spider.HttpGet("https://book.douban.com/j/review/7636302/full")
+    htm, err := spider.HttpGet("https://book.douban.com/j/review/5440030/full")
     if err != nil {
         t.FailNow()
     }
