@@ -73,9 +73,7 @@ func (self *BookReview) checkFinish() {
     if self.totalPage == len(self.pageMap) && self.totalFinishedReview == self.totalReview {
         logInfof("%v|%v, download finished, %v pages with %v reviews", self.bookId, self.bookTitle, self.totalPage, self.totalReview)
         go func() {
-            self.saveToFile()
-            storeMgr.OnFinished(self.bookId)
-            logInfof("%v|%v, write to file finished", self.bookId, self.bookTitle)
+            self.onFinished()
         }()
     }
 }
@@ -88,7 +86,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
             count, err := ParseTotalReviews(string(resp))
             if err != nil {
                 logErrorf("%v|%v, failed to get page count, %v", self.bookId, self.bookTitle, err)
-                storeMgr.OnFinished(self.bookId)
+                self.onFinished()
                 return
             }
             self.totalPage = (count+19)/20
@@ -102,7 +100,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
         reviews, err := ParseBookReviewListPage(string(resp))
         if len(reviews) == 0 || err != nil {
             logErrorf("%v|%v, parse html for reviews failed, %v", self.bookId, self.bookTitle, err)
-            storeMgr.OnFinished(self.bookId)
+            self.onFinished()
         }else {
             self.addPageReviews(page, reviews)
         }
@@ -143,7 +141,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
                 logErrorf("%v|%v, reviewId %v exist but it is nil", reviewId)
             }
 
-            storeMgr.OnFinished(self.bookId)
+            self.onFinished()
         }
     } else {
         logErrorf("%v|%v, param error, no page no rid, %v", self.bookId, self.bookTitle, params)
@@ -161,7 +159,6 @@ func (self BookReview) getListPageUrl(page int) (string) {
 func (self BookReview) getDetailUrl(rid string) (string) {
     return fmt.Sprintf(BOOK_REVIEW_DETAIL_URL_FORMAT, rid)
 }
-
 
 func (self *BookReview) addPageReviews(page string, reviews []*BOOK_REVIEW) {
     logInfof("BookReview:addPageReviews, add %d reviews for page %v", len(reviews), page)
@@ -186,6 +183,11 @@ func (self *BookReview) addPageReviews(page string, reviews []*BOOK_REVIEW) {
     for _, review := range reviews {
         spe.Do(self.getResId(), self.getDetailUrl(review.ReviewId), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-review", "rid":review.ReviewId})
     }
+}
+
+func (self BookReview) onFinished() {
+    self.saveToFile()
+    storeMgr.OnFinished(self.bookId)
 }
 
 func (self BookReview) saveToFile() error {
@@ -219,6 +221,6 @@ func (self BookReview) saveToFile() error {
         }
     }
 
-    logInfof("BookReview:saveToFile, save to file %v successfully", fullfile)
+    logInfof("BookReview:saveToFile, %v|%v, save to file %v successfully, totally %v reviews in %v pages", self.bookId, self.bookTitle, fullfile, self.totalFinishedReview, self.totalPage)
     return nil
 }
