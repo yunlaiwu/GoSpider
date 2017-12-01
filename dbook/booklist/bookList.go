@@ -90,12 +90,14 @@ func main() {
             fmt.Println("failed to decode json", err)
         }else {
             bookId := DecodeId(book.Url)
+            bookId = SanityString(bookId)
             if _, exist := idm[bookId]; exist {
                 fmt.Printf("found duplicated item, id %v, title %v\n", bookId,book.Title)
             }else {
                 //fmt.Println(book.Title, book.Url)
-                s := fmt.Sprintf("%v\t%v\n", SanityString(bookId), SanityString(book.Title))
+                s := fmt.Sprintf("%v\t%v\n", bookId, SanityString(book.Title))
                 fo.WriteString(s)
+                idm[bookId] = 1
             }
         }
     }
