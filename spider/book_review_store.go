@@ -86,17 +86,25 @@ func (self *BookReviewStore) OnFinished(id string) {
     self.doneCount +=1
     self.doneMap.Store(id, TimeMillSecond())
 
-    logInfof("One Task is Done! downloaded %v resources now", self.doneCount)
-
-    reviews := self.getReviewTask(1)
-    for _, review := range reviews {
-        review.Start()
-    }
+    logInfof("One Task is Done! Already downloaded %v books now", self.doneCount)
 
     if self.totalCount == self.doneCount {
         //都完成了
         logInfof("All Task is Done! total download %v resources", self.doneCount)
         doneChan <- nil
+
+        //only for debug
+        logInfof("Check book list....")
+        for elem := self.bookList.Front(); elem != nil; elem = elem.Next() {
+            review := elem.Value.(*BookReview)
+            logInfof("book review for %v|%v still in book list", review.getBookId(), review.getBookTitle())
+        }
+
+    }else {
+        reviews := self.getReviewTask(1)
+        for _, review := range reviews {
+            review.Start()
+        }
     }
 }
 
