@@ -56,6 +56,7 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
     bidDone := loadDoneTask(GetFullPath(filepath.Join(self.saveDir, "./book-review/")))
     logInfof("we got %v books already downloaded", len(bidDone))
 
+    aaa := make(map[string]int, 0)
     for elem := lines.Front(); elem != nil; elem = elem.Next() {
         //每行是用\t分割的 bookID和bookTitle
         parts := strings.Split(elem.Value.(string) , "\t")
@@ -63,6 +64,12 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
             //report error here
             logErrorf("invalid line in task file, %v", elem.Value.(string))
             continue
+        }
+
+        if _, exist := aaa[parts[0]]; !exist {
+            aaa[parts[0]] = 1
+        }else {
+            logInfof("duplicated id %v in line %v", parts[0], elem.Value.(string))
         }
 
         if _, exist := bidDone[parts[0]]; !exist {
