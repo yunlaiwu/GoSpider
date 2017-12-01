@@ -112,7 +112,7 @@ func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
 }
 
 func (self BookComment) saveToFile() error {
-    fullfile := filepath.Join(self.baseFolder, SanityString(self.bookId + "_" + self.bookTitle + ".txt"))
+    fullfile := filepath.Join(self.baseFolder, SanityStringForFileName(self.bookId + "_" + self.bookTitle + ".txt"))
     f, err := os.OpenFile(fullfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
     if err != nil {
         return err

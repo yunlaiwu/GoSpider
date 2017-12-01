@@ -123,6 +123,24 @@ func SanityString(s string) string {
     return s
 }
 
+//去掉\t \n \r
+//去掉其它文件系统不允许的作为文件名的字符：. .. 和空格 和 / \  ？ * & $ 替换为_，
+func SanityStringForFileName(s string) string {
+    s = strings.Replace(s, "\t", "", -1)
+    s = strings.Replace(s, "\n", "", -1)
+    s = strings.Replace(s, "\r", "", -1)
+    s = strings.Replace(s, "..", "-", -1)
+    s = strings.Replace(s, ".", "-", -1)
+    s = strings.Replace(s, " ", "-", -1)
+    s = strings.Replace(s, "\\", "-", -1)
+    s = strings.Replace(s, "/", "-", -1)
+    s = strings.Replace(s, "?", "-", -1)
+    s = strings.Replace(s, "*", "-", -1)
+    s = strings.Replace(s, "&", "-", -1)
+    s = strings.Replace(s, "$", "-", -1)
+    return s
+}
+
 func Int2String(i int) string {
     return fmt.Sprintf("%v", i)
 }
