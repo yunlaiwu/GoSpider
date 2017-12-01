@@ -202,13 +202,14 @@ func (self BookReview) saveToFile() error {
     fullpath := GetFullPath(filepath.Join(self.baseFolder, "./book-review/"))
     err := CreateDirIfNotExist(fullpath)
     if err != nil {
-        logErrorf("BookReview:saveToFile, failed to create folder %v", fullpath)
+        logErrorf("BookReview:saveToFile, failed to create folder %v, err:", fullpath, err)
         return err
     }
 
     fullfile := filepath.Join(fullpath, SanityString(self.bookId + "_" + self.bookTitle + ".txt"))
     f, err := os.OpenFile(fullfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
     if err != nil {
+        logErrorf("BookReview:saveToFile, failed to create file %v, err:", fullpath, err)
         return err
     }
 
