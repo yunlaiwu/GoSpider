@@ -46,6 +46,11 @@ func (self *BookComment) Start() {
     spe.Do(self.getResId(), self.getUrl(1), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(1)})
 }
 
+func (self BookComment) OnFinished() {
+    self.saveToFile()
+    storeMgr.OnFinished(self.bookId)
+}
+
 func (self *BookComment) OnResponse(url string, resp []byte, params map[string]string) {
     logInfof("BookComment:OnResponse, url:%v, params:%v", url, params)
     if page,exist := params["page"]; exist {
@@ -54,7 +59,7 @@ func (self *BookComment) OnResponse(url string, resp []byte, params map[string]s
             count, err := ParseTotalComments(string(resp))
             if err != nil {
                 logErrorf("%v|%v, failed to get page count, %v", self.bookId, self.bookTitle, err)
-                storeMgr.OnFinished(self.bookId)
+                self.OnFinished()
                 return
             }
             self.totalPage = (count+19)/20
@@ -68,7 +73,7 @@ func (self *BookComment) OnResponse(url string, resp []byte, params map[string]s
         comments, err := ParseBookComment(string(resp))
         if len(comments) == 0 || err != nil {
             logErrorf("%v|%v, parse html for comments failed, %v", self.bookId, self.bookTitle, err)
-            storeMgr.OnFinished(self.bookId)
+            self.OnFinished()
         }else {
             self.addComments(page, comments)
         }
@@ -102,24 +107,24 @@ func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
     })
 
     if n == self.totalPage {
-        logInfof("%v|%v, download finished, total %v", self.bookId, self.bookTitle, total)
+        logInfof("%v|%v, download finished, total %v pages", self.bookId, self.bookTitle, total)
         go func() {
-            self.saveToFile()
-            storeMgr.OnFinished(self.bookId)
-            logInfof("%v|%v, write to file finished", self.bookId, self.bookTitle)
+            self.OnFinished()
         }()
     }
 }
 
 func (self BookComment) saveToFile() error {
-    fullfile := filepath.Join(self.baseFolder, SanityStringForFileName(self.bookId + "_" + self.bookTitle + ".txt"))
-    f, err := os.OpenFile(fullfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+    fullpath := filepath.Join(self.baseFolder, SanityStringForFileName(self.bookId + "_" + self.bookTitle) + ".txt")
+    f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
     if err != nil {
+        logErrorf("BookReview:saveToFile, failed to create file %v, err:", fullpath, err)
         return err
     }
 
     defer f.Close()
 
+    totalComments := 0
     for i:=1; i<=self.totalPage; i++ {
         v, ok := self.pageMap.Load(fmt.Sprintf("%v", i))
         if ok {
@@ -127,9 +132,10 @@ func (self BookComment) saveToFile() error {
             for _, comment := range comments {
                 f.WriteString(comment.String() + "\n")
             }
+            totalComments += len(comments)
         }
     }
 
-    logInfof("BookComment:saveToFile, save to file %v successfully", fullfile)
+    logInfof("BookComment:saveToFile, save to file %v successfully, totally %v comments in %v pages", fullpath, totalComments, self.totalPage)
     return nil
 }

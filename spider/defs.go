@@ -9,7 +9,9 @@ const (
  * 管理某个资源，通常是某本书的所有短评，某本书的所有书评等。其实是对应一系列带分页的url
  */
 type IResHunter interface {
+    Start()
     OnResponse(url string, resp []byte, params map[string]string)
+    OnFinished()
 }
 
 /*

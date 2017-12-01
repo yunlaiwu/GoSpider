@@ -67,15 +67,9 @@ func (self *BookReview) Start() {
     spe.Do(self.getResId(), self.getListPageUrl(1), map[string]string{"id":self.bookId, "title":self.bookTitle, "res":"book-review", "page":strconv.Itoa(1)})
 }
 
-func (self *BookReview) checkFinish() {
-    self.pageMapLock.Lock()
-    defer self.pageMapLock.Unlock()
-    if self.totalPage == len(self.pageMap) && self.totalFinishedReview == self.totalReview {
-        logInfof("%v|%v, download finished, %v pages with %v reviews", self.bookId, self.bookTitle, self.totalPage, self.totalReview)
-        go func() {
-            self.onFinished()
-        }()
-    }
+func (self BookReview) OnFinished() {
+    self.saveToFile()
+    storeMgr.OnFinished(self.bookId)
 }
 
 func (self *BookReview) OnResponse(url string, resp []byte, params map[string]string) {
@@ -86,7 +80,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
             count, err := ParseTotalReviews(string(resp))
             if err != nil {
                 logErrorf("%v|%v, failed to get page count, %v", self.bookId, self.bookTitle, err)
-                self.onFinished()
+                self.OnFinished()
                 return
             }
             self.totalPage = (count+19)/20
@@ -100,7 +94,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
         reviews, err := ParseBookReviewListPage(string(resp))
         if len(reviews) == 0 || err != nil {
             logErrorf("%v|%v, parse html for reviews failed, %v", self.bookId, self.bookTitle, err)
-            self.onFinished()
+            self.OnFinished()
         }else {
             self.addPageReviews(page, reviews)
         }
@@ -141,7 +135,7 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
                 logErrorf("%v|%v, reviewId %v exist but it is nil", reviewId)
             }
 
-            self.onFinished()
+            self.OnFinished()
         }
     } else {
         logErrorf("%v|%v, param error, no page no rid, %v", self.bookId, self.bookTitle, params)
@@ -166,6 +160,17 @@ func (self BookReview) getListPageUrl(page int) (string) {
 
 func (self BookReview) getDetailUrl(rid string) (string) {
     return fmt.Sprintf(BOOK_REVIEW_DETAIL_URL_FORMAT, rid)
+}
+
+func (self *BookReview) checkFinish() {
+    self.pageMapLock.Lock()
+    defer self.pageMapLock.Unlock()
+    if self.totalPage == len(self.pageMap) && self.totalFinishedReview == self.totalReview {
+        logInfof("%v|%v, download finished, %v pages with %v reviews", self.bookId, self.bookTitle, self.totalPage, self.totalReview)
+        go func() {
+            self.OnFinished()
+        }()
+    }
 }
 
 func (self *BookReview) addPageReviews(page string, reviews []*BOOK_REVIEW) {
@@ -193,11 +198,6 @@ func (self *BookReview) addPageReviews(page string, reviews []*BOOK_REVIEW) {
     }
 }
 
-func (self BookReview) onFinished() {
-    self.saveToFile()
-    storeMgr.OnFinished(self.bookId)
-}
-
 func (self BookReview) saveToFile() error {
     fullpath := GetFullPath(filepath.Join(self.baseFolder, "./book-review/"))
     err := CreateDirIfNotExist(fullpath)
@@ -206,7 +206,7 @@ func (self BookReview) saveToFile() error {
         return err
     }
 
-    fullfile := filepath.Join(fullpath, SanityStringForFileName(self.bookId + "_" + self.bookTitle + ".txt"))
+    fullfile := filepath.Join(fullpath, SanityStringForFileName(self.bookId + "_" + self.bookTitle) + ".txt")
     f, err := os.OpenFile(fullfile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
     if err != nil {
         logErrorf("BookReview:saveToFile, failed to create file %v, err:", fullpath, err)

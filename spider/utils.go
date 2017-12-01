@@ -156,17 +156,22 @@ func IsMAC() bool {
 
 func loadDoneTask(dirpath string) (ids map[string]bool) {
     ids = make(map[string]bool)
+    totalFile := 0
     filepath.Walk(dirpath, func(path string, f os.FileInfo, err error) error {
         if f == nil || f.IsDir(){
+            logErrorf("loadDoneTask, invalid file or directory [%v], %v", f.Name(), err)
             return err
         }
+        totalFile += 1
         if strings.HasSuffix(path, ".txt") == false {
+            logErrorf("loadDoneTask, not txt file, %v", f.Name())
             return err
         }
         filename := filepath.Base(path)
         //just like 1059419_海边的卡夫卡.txt
         first := strings.Index(filename, "_")
         if first == -1 {
+            logErrorf("loadDoneTask, failed to extract id from file %v", f.Name())
             return err
         }
 
@@ -174,5 +179,6 @@ func loadDoneTask(dirpath string) (ids map[string]bool) {
         ids[id] = true
         return nil
     })
+    logInfof("loadDoneTask, finally find %v files with correct id", len(ids))
     return ids
 }
