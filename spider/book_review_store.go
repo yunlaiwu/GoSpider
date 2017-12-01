@@ -48,7 +48,10 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
     if err != nil {
         logErrorf("BookReviewStore:Start, failed to read booksFile %v", err)
         return err
+    }else {
+        logInfof("we got %v books listed in config file", lines.Len())
     }
+    logInfof("we got %v books in task file", lines.Len())
 
     bidDone := loadDoneTask(GetFullPath(filepath.Join(self.saveDir, "./book-review/")))
     logInfof("we got %v books already downloaded", len(bidDone))
@@ -58,6 +61,7 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
         parts := strings.Split(elem.Value.(string) , "\t")
         if len(parts) != 2 {
             //report error here
+            logErrorf("invalid line in task file, %v", elem.Value.(string))
             continue
         }
 
