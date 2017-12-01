@@ -176,9 +176,14 @@ func loadDoneTask(dirpath string) (ids map[string]bool) {
         }
 
         id := filename[0:first]
-        ids[id] = true
+        if _, exist := ids[id]; exist {
+            logErrorf("loadDoneTask, id %v already exist, %v", id, f.Name())
+        }else {
+            ids[id] = true
+        }
+
         return nil
     })
-    logInfof("loadDoneTask, finally find %v files with correct id", len(ids))
+    logInfof("loadDoneTask, finally find %v files with correct id", totalFile)
     return ids
 }
