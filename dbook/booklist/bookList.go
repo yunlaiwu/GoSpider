@@ -72,6 +72,8 @@ func main() {
 
     defer fo.Close()
 
+    idm := make(map[string]int)
+
     buf := bufio.NewReader(fi)
     for {
         line, err := buf.ReadString('\n')
@@ -88,9 +90,13 @@ func main() {
             fmt.Println("failed to decode json", err)
         }else {
             bookId := DecodeId(book.Url)
-            s := fmt.Sprintf("%v\t%v\n", SanityString(bookId), SanityString(book.Title))
-            fmt.Println(book.Title, book.Url)
-            fo.WriteString(s)
+            if _, exist := idm[bookId]; exist {
+                fmt.Printf("found duplicated item, id %v, title %v\n", bookId,book.Title)
+            }else {
+                //fmt.Println(book.Title, book.Url)
+                s := fmt.Sprintf("%v\t%v\n", SanityString(bookId), SanityString(book.Title))
+                fo.WriteString(s)
+            }
         }
     }
 
