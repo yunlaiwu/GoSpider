@@ -80,8 +80,12 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
     }
 
     reviews := self.getReviewTask(3)
-    for _, review := range reviews {
-        review.Start()
+    if len(reviews) == 0 {
+        logInfof("no task, exit!")
+    }else {
+        for _, review := range reviews {
+            review.Start()
+        }
     }
 
     return nil
