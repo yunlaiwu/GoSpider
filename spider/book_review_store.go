@@ -51,6 +51,7 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
     }
 
     bidDone := loadDoneTask(GetFullPath(filepath.Join(self.saveDir, "./book-review/")))
+    logInfof("we got %v books already downloaded", len(bidDone))
 
     for elem := lines.Front(); elem != nil; elem = elem.Next() {
         //每行是用\t分割的 bookID和bookTitle
@@ -68,7 +69,7 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
     }
 
     self.totalCount = self.bookList.Len()
-    logInfof("we got %v books this time", self.totalCount)
+    logInfof("we got %v books to download this time", self.totalCount)
     for elem := self.bookList.Front(); elem != nil; elem = elem.Next() {
         review := elem.Value.(*BookReview)
         logInfof("book review for %v|%v need to download", review.getBookId(), review.getBookTitle())
