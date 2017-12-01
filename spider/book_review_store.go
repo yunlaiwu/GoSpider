@@ -68,6 +68,11 @@ func (self *BookReviewStore) Start(booksFile, saveDir string) (err error) {
     }
 
     self.totalCount = self.bookList.Len()
+    logInfof("we got %v books this time", self.totalCount)
+    for elem := self.bookList.Front(); elem != nil; elem = elem.Next() {
+        review := elem.Value.(*BookReview)
+        logInfof("book review for %v|%v need to download", review.getBookId(), review.getBookTitle())
+    }
 
     reviews := self.getReviewTask(3)
     for _, review := range reviews {

@@ -148,6 +148,14 @@ func (self *BookReview) OnResponse(url string, resp []byte, params map[string]st
     }
 }
 
+func (self BookReview) getBookId() string {
+    return self.bookId
+}
+
+func (self BookReview) getBookTitle() string  {
+    return self.bookTitle
+}
+
 func (self BookReview) getResId() string {
     return RES_BOOK_REVIEW+"-"+self.bookId
 }
