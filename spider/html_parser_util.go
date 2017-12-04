@@ -45,14 +45,10 @@ func ParseUserID(userAvatar, userPage string) (userID string, err error) {
 	userID, err = ParseUserIDFromAvatar(userAvatar)
 	if err == nil && IsValidUserID(userID) {
 		return userID, nil
-	} else {
-		fmt.Printf("failed to extract from avatar %v, result:%v, err:%v\n", userAvatar, userID, err)
 	}
 	userID, err = ParseUserIDFromUserPage(userPage)
 	if err == nil && IsValidUserID(userID) {
 		return userID, nil
-	} else {
-		fmt.Printf("failed to extract from page %v, result:%v, err:%v\n", userPage, userID, err)
 	}
 	return "", errors.New("failed to extract userID")
 }
