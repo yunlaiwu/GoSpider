@@ -8,134 +8,134 @@ package main
  */
 
 import (
-    "sync"
-    "strconv"
+	"strconv"
+	"sync"
 )
 
 import (
-    "fmt"
-    "path/filepath"
-    "os"
+	"fmt"
+	"os"
+	"path/filepath"
 )
 
 const (
-    BOOK_COMMENT_URL_FORMAT = "https://book.douban.com/subject/%v/comments/new?p=%v"
+	BOOK_COMMENT_URL_FORMAT = "https://book.douban.com/subject/%v/comments/new?p=%v"
 )
 
 type BookComment struct {
-    bookId string
-    bookTitle string
-    baseFolder string
+	bookId     string
+	bookTitle  string
+	baseFolder string
 
-    totalPage int
-    pageMap   sync.Map
+	totalPage int
+	pageMap   sync.Map
 }
 
 func NewBookComment(bookId, bookTitle string, baseFolder string) *BookComment {
-    return &BookComment{
-        bookId:bookId,
-        bookTitle:bookTitle,
-        baseFolder:baseFolder,
-        totalPage:-1,
-    }
+	return &BookComment{
+		bookId:     bookId,
+		bookTitle:  bookTitle,
+		baseFolder: baseFolder,
+		totalPage:  -1,
+	}
 }
 
 func (self *BookComment) Start() {
-    logInfof("%v|%v, start!", self.bookId, self.bookTitle)
-    spe.Register(self.getResId(), self)
-    spe.Do(self.getResId(), self.getUrl(1), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(1)})
+	logInfof("%v|%v, start!", self.bookId, self.bookTitle)
+	spe.Register(self.getResId(), self)
+	spe.Do(self.getResId(), self.getUrl(1), map[string]string{"bid": self.bookId, "title": self.bookTitle, "res": "book-comment", "page": strconv.Itoa(1)})
 }
 
 func (self BookComment) OnFinished() {
-    self.saveToFile()
-    storeMgr.OnFinished(self.bookId)
+	self.saveToFile()
+	storeMgr.OnFinished(self.bookId)
 }
 
 func (self *BookComment) OnResponse(url string, resp []byte, params map[string]string) {
-    logInfof("BookComment:OnResponse, url:%v, params:%v", url, params)
-    if page,exist := params["page"]; exist {
-        if page == "1" {
-            //第一页解析总的评论数，并计算总的页数
-            count, err := ParseTotalComments(string(resp))
-            if err != nil {
-                logErrorf("%v|%v, failed to get page count, %v", self.bookId, self.bookTitle, err)
-                self.OnFinished()
-                return
-            }
-            self.totalPage = (count+19)/20
-            logInfof("%v|%v, total page %v", self.bookId, self.bookTitle, self.totalPage)
+	logInfof("BookComment:OnResponse, url:%v, params:%v", url, params)
+	if page, exist := params["page"]; exist {
+		if page == "1" {
+			//第一页解析总的评论数，并计算总的页数
+			count, err := ParseTotalComments(string(resp))
+			if err != nil {
+				logErrorf("%v|%v, failed to get page count, %v", self.bookId, self.bookTitle, err)
+				self.OnFinished()
+				return
+			}
+			self.totalPage = (count + 19) / 20
+			logInfof("%v|%v, total page %v", self.bookId, self.bookTitle, self.totalPage)
 
-            for i := 2; i <= self.totalPage; i++ {
-                spe.Do(self.getResId(), self.getUrl(i), map[string]string{"bid":self.bookId, "title":self.bookTitle, "res":"book-comment", "page":strconv.Itoa(i)})
-            }
-        }
+			for i := 2; i <= self.totalPage; i++ {
+				spe.Do(self.getResId(), self.getUrl(i), map[string]string{"bid": self.bookId, "title": self.bookTitle, "res": "book-comment", "page": strconv.Itoa(i)})
+			}
+		}
 
-        comments, err := ParseBookComment(string(resp))
-        if len(comments) == 0 || err != nil {
-            logErrorf("%v|%v, parse html for comments failed, %v", self.bookId, self.bookTitle, err)
-            self.OnFinished()
-        }else {
-            self.addComments(page, comments)
-        }
+		comments, err := ParseBookComment(string(resp))
+		if len(comments) == 0 || err != nil {
+			logErrorf("%v|%v, parse html for comments failed, %v", self.bookId, self.bookTitle, err)
+			self.OnFinished()
+		} else {
+			self.addComments(page, comments)
+		}
 
-    }else {
-        logErrorf("%v|%v, param error, no page, %v", self.bookId, self.bookTitle, params)
-    }
+	} else {
+		logErrorf("%v|%v, param error, no page, %v", self.bookId, self.bookTitle, params)
+	}
 }
 
 func (self BookComment) getResId() string {
-    return RES_BOOK_COMMENT+"-"+self.bookId
+	return RES_BOOK_COMMENT + "-" + self.bookId
 }
 
-func (self BookComment) getUrl(page int) (string) {
-    return fmt.Sprintf(BOOK_COMMENT_URL_FORMAT, self.bookId, page)
+func (self BookComment) getUrl(page int) string {
+	return fmt.Sprintf(BOOK_COMMENT_URL_FORMAT, self.bookId, page)
 }
 
 func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
-    logInfof("BookComment:addComments, add %d comments for page %v", len(comments), page)
-    _, loaded := self.pageMap.LoadOrStore(page, comments)
-    if loaded == true {
-        logErrorf("%v|%v, page %v maybe downloaed more than once", self.bookId, self.bookTitle, page)
-    }
+	logInfof("BookComment:addComments, add %d comments for page %v", len(comments), page)
+	_, loaded := self.pageMap.LoadOrStore(page, comments)
+	if loaded == true {
+		logErrorf("%v|%v, page %v maybe downloaed more than once", self.bookId, self.bookTitle, page)
+	}
 
-    n := 0
-    total := 0
-    self.pageMap.Range(func(key, value interface{}) bool {
-        n +=1
-        total += len(value.([]*BOOK_COMMENT))
-        return true
-    })
+	n := 0
+	total := 0
+	self.pageMap.Range(func(key, value interface{}) bool {
+		n += 1
+		total += len(value.([]*BOOK_COMMENT))
+		return true
+	})
 
-    if n == self.totalPage {
-        logInfof("%v|%v, download finished, total %v pages", self.bookId, self.bookTitle, total)
-        go func() {
-            self.OnFinished()
-        }()
-    }
+	if n == self.totalPage {
+		logInfof("%v|%v, download finished, total %v pages", self.bookId, self.bookTitle, total)
+		go func() {
+			self.OnFinished()
+		}()
+	}
 }
 
 func (self BookComment) saveToFile() error {
-    fullpath := filepath.Join(self.baseFolder, SanityStringForFileName(self.bookId + "_" + self.bookTitle) + ".txt")
-    f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
-    if err != nil {
-        logErrorf("BookReview:saveToFile, failed to create file %v, err:", fullpath, err)
-        return err
-    }
+	fullpath := filepath.Join(self.baseFolder, SanityStringForFileName(self.bookId+"_"+self.bookTitle)+".txt")
+	f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		logErrorf("BookReview:saveToFile, failed to create file %v, err:", fullpath, err)
+		return err
+	}
 
-    defer f.Close()
+	defer f.Close()
 
-    totalComments := 0
-    for i:=1; i<=self.totalPage; i++ {
-        v, ok := self.pageMap.Load(fmt.Sprintf("%v", i))
-        if ok {
-            comments := v.([]*BOOK_COMMENT)
-            for _, comment := range comments {
-                f.WriteString(comment.String() + "\n")
-            }
-            totalComments += len(comments)
-        }
-    }
+	totalComments := 0
+	for i := 1; i <= self.totalPage; i++ {
+		v, ok := self.pageMap.Load(fmt.Sprintf("%v", i))
+		if ok {
+			comments := v.([]*BOOK_COMMENT)
+			for _, comment := range comments {
+				f.WriteString(comment.String() + "\n")
+			}
+			totalComments += len(comments)
+		}
+	}
 
-    logInfof("BookComment:saveToFile, save to file %v successfully, totally %v comments in %v pages", fullpath, totalComments, self.totalPage)
-    return nil
+	logInfof("BookComment:saveToFile, save to file %v successfully, totally %v comments in %v pages", fullpath, totalComments, self.totalPage)
+	return nil
 }

@@ -1,21 +1,29 @@
 package main_test
 
 import (
-    "testing"
-    spider "GoSpider/spider"
-    "fmt"
+	spider "GoSpider/spider"
+	"fmt"
+	"testing"
 )
 
-/*
 func Test_ParseBookComment(t *testing.T) {
-    htm, err := spider.HttpGet("https://book.douban.com/subject/1083428/comments/new")
-    if err != nil {
-        t.FailNow()
-    }
+	htm, err := spider.HttpGet("https://book.douban.com/subject/1083428/comments/new")
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	}
 
-    spider.ParseBookComment(string(htm))
+	comments, err := spider.ParseBookComment(string(htm))
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	}
+
+	for _, comment := range comments {
+		fmt.Println(comment)
+		fmt.Println("")
+	}
 }
-*/
 
 /*
 func Test_ParseBookReview(t *testing.T) {
@@ -102,7 +110,7 @@ func Test_ParseBookTotalReviews(t *testing.T) {
     }
 }
 */
-
+/*
 func Test_ParseBookReviewFullJson(t *testing.T) {
     //htm, err := spider.HttpGet("https://book.douban.com/j/review/6653108/full")
     //htm, err := spider.HttpGet("https://book.douban.com/j/review/7636302/full")
@@ -124,3 +132,4 @@ func Test_ParseBookReviewFullJson(t *testing.T) {
     fmt.Println("usefull:", useful)
     fmt.Println("useless:", useless)
 }
+*/
