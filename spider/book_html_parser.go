@@ -10,7 +10,7 @@ import (
 	"github.com/opesun/goquery"
 )
 
-type BOOK_COMMENT struct {
+type BookCommentData struct {
 	CommentID   string `json:"cid"`
 	UserId      string `json:"userid"`
 	UserName    string `json:"username"`
@@ -36,12 +36,12 @@ type BOOK_REVIEW struct {
 	Useless     int    `json:"useless"`
 }
 
-func NewBOOK_COMMENT() *BOOK_COMMENT {
-	return &BOOK_COMMENT{}
+func NewBookCommentData() *BookCommentData {
+	return &BookCommentData{}
 }
 
 /*
-func COMMENT_FROM_STRING(s string) (bookComment *BOOK_COMMENT) {
+func COMMENT_FROM_STRING(s string) (bookComment *BookCommentData) {
     s = strings.Trim(s, "\n")
     s = strings.TrimSpace(s)
     parts := strings.Split(s, "\t")
@@ -49,7 +49,7 @@ func COMMENT_FROM_STRING(s string) (bookComment *BOOK_COMMENT) {
         return nil
     }
 
-    bookComment = NewBOOK_COMMENT()
+    bookComment = NewBookCommentData()
     bookComment.userid = parts[0]
     bookComment.username = parts[1]
     bookComment.userpage = parts[2]
@@ -62,7 +62,7 @@ func COMMENT_FROM_STRING(s string) (bookComment *BOOK_COMMENT) {
 }
 */
 
-func (self BOOK_COMMENT) String() string {
+func (self BookCommentData) String() string {
 	return fmt.Sprintf("图书短评%v: 用户:%v|%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v, 内容:%v", self.CommentID, self.UserName, self.UserId, self.UserPage, self.UserAvatar, self.PublishDate, self.Rate, self.Useful, self.Content)
 	/*
 	   ss := []string{self.commendid, self.userid, self.username, self.userpage, self.publish_date, Int2String(self.rate), Int2String(self.useful), self.content}
@@ -73,7 +73,7 @@ func (self BOOK_COMMENT) String() string {
 	*/
 }
 
-func (self BOOK_COMMENT) ToJson() (string, error) {
+func (self BookCommentData) ToJson() (string, error) {
 	j, err := json.Marshal(self)
 	if err != nil {
 		return "", err
@@ -146,7 +146,7 @@ func ParseReviewCount(s string) (count int, err error) {
 /*ParseBookComment
  * 从豆瓣图书的短评列表页中解析出所有的图书短评，https://book.douban.com/subject/1083428/comments/new
  */
-func ParseBookComment(htm string) (comments []*BOOK_COMMENT, err error) {
+func ParseBookComment(htm string) (comments []*BookCommentData, err error) {
 	nodes, err := goquery.ParseString(htm)
 	if err != nil {
 		fmt.Println("ParseBookComment: failed parse html")
@@ -165,9 +165,9 @@ func ParseBookComment(htm string) (comments []*BOOK_COMMENT, err error) {
 		}
 	})
 
-	comments = make([]*BOOK_COMMENT, len(commentIDs))
+	comments = make([]*BookCommentData, len(commentIDs))
 	for i, _ := range comments {
-		comment := NewBOOK_COMMENT()
+		comment := NewBookCommentData()
 		comment.CommentID = commentIDs[i]
 		comments[i] = comment
 	}
@@ -233,6 +233,8 @@ func ParseBookComment(htm string) (comments []*BOOK_COMMENT, err error) {
 		userID, err := ParseUserID(comment.UserAvatar, comment.UserPage)
 		if err == nil {
 			comment.UserId = userID
+		} else {
+			logErrorf("failed to get userID, avatar:%v, page:%v", comment.UserAvatar, comment.UserPage)
 		}
 	}
 

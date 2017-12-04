@@ -91,7 +91,7 @@ func (self BookComment) getUrl(page int) string {
 	return fmt.Sprintf(BOOK_COMMENT_URL_FORMAT, self.bookId, page)
 }
 
-func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
+func (self *BookComment) addComments(page string, comments []*BookCommentData) {
 	logInfof("BookComment:addComments, add %d comments for page %v", len(comments), page)
 	_, loaded := self.pageMap.LoadOrStore(page, comments)
 	if loaded == true {
@@ -102,7 +102,7 @@ func (self *BookComment) addComments(page string, comments []*BOOK_COMMENT) {
 	total := 0
 	self.pageMap.Range(func(key, value interface{}) bool {
 		n += 1
-		total += len(value.([]*BOOK_COMMENT))
+		total += len(value.([]*BookCommentData))
 		return true
 	})
 
@@ -128,9 +128,14 @@ func (self BookComment) saveToFile() error {
 	for i := 1; i <= self.totalPage; i++ {
 		v, ok := self.pageMap.Load(fmt.Sprintf("%v", i))
 		if ok {
-			comments := v.([]*BOOK_COMMENT)
+			comments := v.([]*BookCommentData)
 			for _, comment := range comments {
-				f.WriteString(comment.String() + "\n")
+				jstr, err := comment.ToJson()
+				if err == nil {
+					f.WriteString(SanityString(jstr) + "\n")
+				} else {
+					logErrorf("BookComment:saveToFile, failed to marshal to json, commentID %v", comment.CommentID)
+				}
 			}
 			totalComments += len(comments)
 		}
