@@ -1,11 +1,6 @@
 package main_test
 
-import (
-	spider "GoSpider/spider"
-	"fmt"
-	"testing"
-)
-
+/*
 func Test_HttpProxyGet(t *testing.T) {
 	proxyMgr := spider.NewProxyMgr()
 	proxyMgr.Start()
@@ -26,3 +21,4 @@ func Test_HttpProxyGet(t *testing.T) {
 		fmt.Println(string(ret))
 	}
 }
+*/
