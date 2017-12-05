@@ -18,10 +18,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
-	MOVIE_COMMENT_URL_FORMAT = "https://movie.douban.com/subject/%v/comments?start=%v&limit=20&sort=time&status=P&percent_type="
+	MOVIE_COMMENT_FIRST_PAGE_URL_FORMAT = "https://movie.douban.com/subject/%v/comments?start=0&limit=20&sort=time&status=P&percent_type="
+	MOVIE_COMMENT_BASE_URL_FORMAT       = "https://movie.douban.com/subject/%v/comments"
 )
 
 /*MovieComment ...*/
@@ -48,52 +50,68 @@ func NewMovieComment(movieID, movieTitle string, baseFolder string) *MovieCommen
 func (self *MovieComment) Start() {
 	logInfof("%v|%v, start!", self.movieID, self.movieTitle)
 	spe.Register(self.getResId(), self)
-	spe.Do(self.getResId(), self.getUrl(1), map[string]string{"mid": self.movieID, "title": self.movieTitle, "res": "movie-comment", "page": strconv.Itoa(1)})
+	spe.Do(self.getResId(), self.getFirstPageUrl(), map[string]string{"mid": self.movieID, "title": self.movieTitle, "res": "movie-comment", "page": strconv.Itoa(1)})
 }
 
 /*OnFinished ...*/
 func (self MovieComment) OnFinished() {
-	self.saveToFile()
-	storeMgr.OnFinished(self.movieID)
+	go func() {
+		n := 0
+		total := 0
+		self.pageMap.Range(func(key, value interface{}) bool {
+			n++
+			total += len(value.([]*MovieCommentData))
+			return true
+		})
+
+		logInfof("%v|%v, download finished, total %v comments in %v pages ", self.movieID, self.movieTitle, total, n)
+
+		self.saveToFile()
+		storeMgr.OnFinished(self.movieID)
+	}()
 }
 
 /*OnResponse http回调处理，解析出评论*/
 func (self *MovieComment) OnResponse(url string, resp []byte, params map[string]string) {
 	logInfof("MovieComment:OnResponse, url:%v, params:%v", url, params)
-	if page, exist := params["page"]; exist {
-		if page == "1" {
-			//第一页解析总的评论数，并计算总的页数
-			count, err := ParseTotalMovieCommentsForWatched(string(resp))
-			if count == 0 || err != nil {
-				if count == 0 {
-					logErrorf("%v|%v, this movie has no comments", self.movieID, self.movieTitle)
-				} else {
-					logErrorf("%v|%v, failed to get page count, %v", self.movieID, self.movieTitle, err)
-				}
-				self.OnFinished()
-				return
-			}
-			self.totalPage = (count + 19) / 20
-			logInfof("%v|%v, total page %v", self.movieID, self.movieTitle, self.totalPage)
-
-			for i := 2; i <= self.totalPage; i++ {
-				spe.Do(self.getResId(), self.getUrl(i), map[string]string{"mid": self.movieID, "title": self.movieTitle, "res": "movie-comment", "page": strconv.Itoa(i), "totalpage": strconv.Itoa(self.totalPage)})
-			}
-		}
-
+	if p, exist := params["page"]; exist {
 		comments, err := ParseMovieComment(string(resp))
-		if len(comments) == 0 || err != nil {
-			logErrorf("%v|%v, parse html for comments failed, %v", self.movieID, self.movieTitle, err)
+		if err != nil {
+			logErrorf("%v|%v, parse html for movie comments failed, %v", self.movieID, self.movieTitle, err)
 			//重试，不能直接完成，否则后面有些http请求还在队列里，但这里已经标记结束了
 			//更好的办法应该是对每页的重试次数进行统计，到了一定的重试后，就算错误
 			//self.OnFinished()
 			spe.Do(self.getResId(), url, params)
-		} else {
-			self.addComments(page, comments)
+			return
 		}
 
+		if len(comments) > 0 {
+			self.addComments(p, comments)
+		} else {
+			logErrorf("%v|%v, no comments in page %v, finish, %v", self.movieID, self.movieTitle, p, err)
+			self.OnFinished()
+			return
+		}
+
+		href, err := ParseNextMovieCommentListPage(string(resp))
+		if err != nil || len(href) == 0 || !strings.HasPrefix(href, "?") {
+			logErrorf("%v|%v, parse html to get next page fail, %v", self.movieID, self.movieTitle, err)
+			self.OnFinished()
+			return
+		}
+
+		page, err := strconv.Atoi(p)
+		if err != nil {
+			logErrorf("%v|%v, parse page %v fail, %v", self.movieID, self.movieTitle, p, err)
+			self.OnFinished()
+			return
+		}
+
+		nextUrl := MOVIE_COMMENT_BASE_URL_FORMAT + href
+		spe.Do(self.getResId(), nextUrl, map[string]string{"mid": self.movieID, "title": self.movieTitle, "res": "movie-comment", "page": strconv.Itoa(page + 1)})
 	} else {
-		logErrorf("%v|%v, param error, no page, %v", self.movieID, self.movieTitle, params)
+		logErrorf("%v|%v, param error %v, no page, retry", self.movieID, self.movieTitle, params)
+		spe.Do(self.getResId(), url, params)
 	}
 }
 
@@ -101,8 +119,8 @@ func (self MovieComment) getResId() string {
 	return RES_MOVIE_COMMENT + "-" + self.movieID
 }
 
-func (self MovieComment) getUrl(page int) string {
-	return fmt.Sprintf(MOVIE_COMMENT_URL_FORMAT, self.movieID, (page-1)*20)
+func (self MovieComment) getFirstPageUrl() string {
+	return fmt.Sprintf(MOVIE_COMMENT_FIRST_PAGE_URL_FORMAT, self.movieID)
 }
 
 func (self *MovieComment) addComments(page string, comments []*MovieCommentData) {
@@ -110,21 +128,6 @@ func (self *MovieComment) addComments(page string, comments []*MovieCommentData)
 	_, loaded := self.pageMap.LoadOrStore(page, comments)
 	if loaded == true {
 		logErrorf("%v|%v, page %v maybe downloaed more than once", self.movieID, self.movieTitle, page)
-	}
-
-	n := 0
-	total := 0
-	self.pageMap.Range(func(key, value interface{}) bool {
-		n++
-		total += len(value.([]*MovieCommentData))
-		return true
-	})
-
-	if n == self.totalPage {
-		logInfof("%v|%v, download finished, total %v comments in %v pages ", self.movieID, self.movieTitle, total, n)
-		go func() {
-			self.OnFinished()
-		}()
 	}
 }
 

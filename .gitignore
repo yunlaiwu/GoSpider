@@ -1,2 +1,5 @@
 idea/*
 .idea
+spider/log
+spider/store
+*.txt
