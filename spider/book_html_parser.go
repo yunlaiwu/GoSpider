@@ -101,48 +101,6 @@ func (self BOOK_REVIEW) GetId() string {
 	return self.ReviewID
 }
 
-func ParseRating(r string) int {
-	//短评是 "user-stars allstar40 rating"， so it get 40 and return as integer
-	//书评是 "allstar50 main-title-rating"
-	r = strings.ToLower(r)
-	r = strings.Replace(r, "main-title-rating", "", -1)
-	r = strings.Replace(r, "user-stars", "", -1)
-	r = strings.Replace(r, "allstar", "", -1)
-	r = strings.Replace(r, "rating", "", -1)
-	r = strings.TrimSpace(r)
-	rate, err := strconv.Atoi(r)
-	if err == nil {
-		return rate
-	}
-	return 0
-}
-
-func ParseUseful(r string) int {
-	//like "有用 0" "没用 0"
-	r = strings.Replace(r, "有用", "", -1)
-	r = strings.Replace(r, "没用", "", -1)
-	r = strings.TrimSpace(r)
-	if count, err := strconv.Atoi(r); err == nil {
-		return count
-	}
-
-	return 0
-}
-
-func ParseReviewCount(s string) (count int, err error) {
-	//like "电视人的书评 (42)"
-	parts1 := strings.Split(s, "(")
-	if len(parts1) < 2 {
-		return 0, errors.New("failed to find \"(\" ....")
-	}
-
-	parts2 := strings.Split(parts1[len(parts1)-1], ")")
-	if len(parts2) < 2 {
-		return 0, errors.New("failed to find \")\" ....")
-	}
-	return strconv.Atoi(parts2[0])
-}
-
 /*ParseBookComment
  * 从豆瓣图书的短评列表页中解析出所有的图书短评，https://book.douban.com/subject/1083428/comments/new
  */
@@ -165,8 +123,12 @@ func ParseBookComment(htm string) (comments []*BookCommentData, err error) {
 		}
 	})
 
+	if len(commentIDs) == 0 {
+		return nil, errors.New("failed to extract book comments ids, maybe corrupted html")
+	}
+
 	comments = make([]*BookCommentData, len(commentIDs))
-	for i, _ := range comments {
+	for i := range comments {
 		comment := NewBookCommentData()
 		comment.CommentID = commentIDs[i]
 		comments[i] = comment
