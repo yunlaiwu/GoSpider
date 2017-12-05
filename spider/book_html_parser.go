@@ -446,7 +446,7 @@ func ParseReviewJson(resp []byte) (content string, useful, useless int, err erro
 /*
  * 从图书短评分页列表页，获取总的短评个数
  */
-func ParseTotalComments(resp string) (totalComments int, err error) {
+func ParseTotalBookComments(resp string) (totalComments int, err error) {
 	nodes, err := goquery.ParseString(resp)
 	if err != nil {
 		fmt.Println("ParseTotalComments: failed parse html")

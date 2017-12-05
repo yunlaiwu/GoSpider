@@ -16,6 +16,7 @@ import (
 	"sync"
 )
 
+/*BookCommentStore ...*/
 type BookCommentStore struct {
 	booksFile string
 	saveDir   string
@@ -27,6 +28,7 @@ type BookCommentStore struct {
 	doneCount    int
 }
 
+/*NewBookCommentStore ...*/
 func NewBookCommentStore() *BookCommentStore {
 	return &BookCommentStore{
 		bookList:   list.New(),
@@ -35,6 +37,7 @@ func NewBookCommentStore() *BookCommentStore {
 	}
 }
 
+/*Start ...*/
 func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
 	logInfo("BookCommentStore:Start, start")
 	self.booksFile = booksFile
@@ -91,8 +94,9 @@ func (self *BookCommentStore) Start(booksFile, saveDir string) (err error) {
 	return nil
 }
 
+/*OnFinished ...*/
 func (self *BookCommentStore) OnFinished(id string) {
-	self.doneCount += 1
+	self.doneCount++
 	self.doneMap.Store(id, TimeMillSecond())
 
 	logInfof("One Task is Done! downloaded %v resources now", self.doneCount)

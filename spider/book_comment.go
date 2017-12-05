@@ -56,13 +56,13 @@ func (self *BookComment) OnResponse(url string, resp []byte, params map[string]s
 	if page, exist := params["page"]; exist {
 		if page == "1" {
 			//第一页解析总的评论数，并计算总的页数
-			count, err := ParseTotalComments(string(resp))
+			count, err := ParseTotalBookComments(string(resp))
 			if count == 0 || err != nil {
-                if count == 0 {
-                    logErrorf("%v|%v, this book has no comments", self.bookId, self.bookTitle)
-                }else {
-                    logErrorf("%v|%v, failed to get page count, %v", self.bookId, self.bookTitle, err)
-                }
+				if count == 0 {
+					logErrorf("%v|%v, this book has no comments", self.bookId, self.bookTitle)
+				} else {
+					logErrorf("%v|%v, failed to get page count, %v", self.bookId, self.bookTitle, err)
+				}
 				self.OnFinished()
 				return
 			}
@@ -76,10 +76,10 @@ func (self *BookComment) OnResponse(url string, resp []byte, params map[string]s
 
 		comments, err := ParseBookComment(string(resp))
 		if len(comments) == 0 || err != nil {
-            logErrorf("%v|%v, parse html for comments failed of url %v, %v, retry", self.bookId, self.bookTitle, url, err)
-            //这里重试一下
-            //self.OnFinished()
-            spe.Do(self.getResId(), url, params)
+			logErrorf("%v|%v, parse html for comments failed of url %v, %v, retry", self.bookId, self.bookTitle, url, err)
+			//这里重试一下
+			//self.OnFinished()
+			spe.Do(self.getResId(), url, params)
 		} else {
 			self.addComments(page, comments)
 		}

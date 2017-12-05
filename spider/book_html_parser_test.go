@@ -1,11 +1,6 @@
 package main_test
 
-import (
-	spider "GoSpider/spider"
-	"fmt"
-	"testing"
-)
-
+/*
 func Test_ParseBookComment(t *testing.T) {
 	htm, err := spider.HttpGet("https://book.douban.com/subject/1083428/comments/new")
 	if err != nil {
@@ -24,6 +19,7 @@ func Test_ParseBookComment(t *testing.T) {
 		fmt.Println("")
 	}
 }
+*/
 
 /*
 func Test_ParseBookReview(t *testing.T) {

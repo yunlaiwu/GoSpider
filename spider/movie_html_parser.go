@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/opesun/goquery"
 )
@@ -35,6 +38,15 @@ func (self MovieCommentData) String() string {
 			}
 		    return strings.Join(ss, "\t")
 	*/
+}
+
+/*ToJson 输出json字符串 */
+func (self MovieCommentData) ToJson() (string, error) {
+	j, err := json.Marshal(self)
+	if err != nil {
+		return "", err
+	}
+	return string(j), nil
 }
 
 /*ParseMovieComment
@@ -133,4 +145,65 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 	}
 
 	return comments, nil
+}
+
+/*
+ * 从电影短评分页列表页，获取总的(看过)短评个数
+ */
+func ParseTotalMovieCommentsForWatched(resp string) (totalComments int, err error) {
+	nodes, err := goquery.ParseString(resp)
+	if err != nil {
+		fmt.Println("ParseTotalComments: failed parse html")
+		return 0, err
+	}
+
+	commentsNodes := nodes.Find(".CommentTabs")
+	for _, item := range commentsNodes {
+		for _, child := range item.Child {
+			for _, attr := range child.Attr {
+				if attr.Key == "class" && attr.Val == "is-active" {
+					for _, child2 := range child.Child {
+						for _, child3 := range child2.Child {
+							if strings.Contains(child3.Data, "看过") {
+								s := child3.Data
+								s = strings.Replace(s, "看过(", "", -1)
+								s = strings.Replace(s, ")", "", -1)
+								s = strings.TrimSpace(s)
+								return strconv.Atoi(s)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0, errors.New("ParseTotalComments: parse html failed, cannnot found")
+}
+
+/*
+ * 从电影短评分页列表页，获取是否有下页，及下页的url
+ */
+func ParseNextMovieCommentListPage(resp string) (url string, err error) {
+	nodes, err := goquery.ParseString(resp)
+	if err != nil {
+		fmt.Println("ParseNextMovieCommentListPage: failed parse html")
+		return "", err
+	}
+
+	paginator := nodes.Find(".paginator")
+	for _, item := range paginator {
+		for _, child := range item.Child {
+			fmt.Printf("child.Data, %v\n", child.Data)
+			for _, attr := range child.Attr {
+				fmt.Printf("child.Attr,key %v, val %v\n", attr.Key, attr.Val)
+			}
+			for _, child2 := range child.Child {
+				fmt.Printf("child2.Data, %v\n", child2.Data)
+				for _, attr2 := range child2.Attr {
+					fmt.Printf("child2.Attr,key %v, val %v\n", attr2.Key, attr2.Val)
+				}
+			}
+		}
+	}
+	return "", errors.New("ParseNextMovieCommentListPage: parse html failed")
 }
