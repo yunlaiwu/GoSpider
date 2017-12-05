@@ -5,14 +5,16 @@ import sys
 
 if __name__ == "__main__":
     try:
-        action = sys.argv[1]
-        id = sys.argv[2]
-        title = sys.argv[3]
+        res = sys.argv[1]
+        action = sys.argv[2]
+        id = sys.argv[3]
+        title = sys.argv[4]
     except:
     	sys.stderr.write("\tpython " + sys.argv[0] + " action id title\n")
     	sys.exit(-1)
 
+    filename = 'booklist.txt' if res == 'book' else 'movielist.txt'
     mode = 'a' if action=='append' else 'w'
-    fi = open('book_list.txt', mode)
+    fi = open(filename, mode)
     fi.write(id + '\t' + title + '\n')
     fi.close()

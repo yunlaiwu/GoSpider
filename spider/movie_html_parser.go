@@ -59,7 +59,7 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 		return comments, err
 	}
 
-	commentsNodes := nodes.Find(".comment-list")
+	commentsNodes := nodes.Find(".mod-bd")
 
 	//comment id
 	ids := make([]string, 0)
@@ -102,7 +102,7 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 	})
 
 	//有用？
-	commentsNodes.Find(".vote-count").Each(func(i int, voteCount *goquery.Node) {
+	commentsNodes.Find(".votes").Each(func(i int, voteCount *goquery.Node) {
 		if len(voteCount.Child) > 0 {
 			if num, err := strconv.Atoi(voteCount.Child[0].Data); err == nil {
 				comments[i].Useful = num
@@ -190,20 +190,22 @@ func ParseNextMovieCommentListPage(resp string) (url string, err error) {
 		return "", err
 	}
 
-	paginator := nodes.Find(".paginator")
-	for _, item := range paginator {
+	center := nodes.Find(".center")
+	for _, item := range center {
 		for _, child := range item.Child {
-			fmt.Printf("child.Data, %v\n", child.Data)
+			href := ""
+			isNext := false
 			for _, attr := range child.Attr {
-				fmt.Printf("child.Attr,key %v, val %v\n", attr.Key, attr.Val)
-			}
-			for _, child2 := range child.Child {
-				fmt.Printf("child2.Data, %v\n", child2.Data)
-				for _, attr2 := range child2.Attr {
-					fmt.Printf("child2.Attr,key %v, val %v\n", attr2.Key, attr2.Val)
+				if attr.Key == "class" && attr.Val == "next" {
+					isNext = true
+				}else if attr.Key == "href" {
+					href = attr.Val
 				}
+			}
+			if isNext == true && len(href) > 0 && strings.HasPrefix(href, "?"){
+				return href, nil
 			}
 		}
 	}
-	return "", errors.New("ParseNextMovieCommentListPage: parse html failed")
+	return "", errors.New("ParseNextMovieCommentListPage: failed to find next page")
 }

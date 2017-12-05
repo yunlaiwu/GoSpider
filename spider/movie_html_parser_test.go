@@ -24,19 +24,20 @@ func Test_ParseMovieCommentNumber(t *testing.T) {
 }
 */
 
+/*
 func Test_ParseNextMovieCommentListPage(t *testing.T) {
 	htm, err := spider.HttpGet("https://movie.douban.com/subject/27034748/comments?start=0&limit=20&sort=time&status=P&percent_type=")
 	if err != nil {
 		fmt.Println(err)
-		fmt.Println(string(htm))
 		t.FailNow()
 	}
 
 	url, err := spider.ParseNextMovieCommentListPage(string(htm))
 	if err != nil {
-		fmt.Println(err)
-		fmt.Println(string(htm))
+		fmt.Println("failed, err:", err)
 		t.FailNow()
+	}else {
+		fmt.Println("next url is", url)
 	}
 
 	htm, err = spider.HttpGet("https://movie.douban.com/subject/27034748/comments?start=20&limit=20&sort=time&status=P&percent_type=")
@@ -47,9 +48,30 @@ func Test_ParseNextMovieCommentListPage(t *testing.T) {
 
 	url, err = spider.ParseNextMovieCommentListPage(string(htm))
 	if err != nil {
+		fmt.Println("failed, err:", err)
+		t.FailNow()
+	}else {
+		fmt.Println("next url is", url)
+	}
+}
+*/
+
+func Test_ParseMovieComment(t *testing.T) {
+	htm, err := spider.HttpGet("https://movie.douban.com/subject/27034748/comments?start=0&limit=20&sort=time&status=P&percent_type=")
+	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
 
-	fmt.Println(url)
+	comments, err := spider.ParseMovieComment(string(htm))
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	}
+
+	fmt.Printf("found %v comments\n", len(comments))
+	for _, comment := range comments {
+		fmt.Println(comment)
+	}
 }
+
