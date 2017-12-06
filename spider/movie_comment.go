@@ -23,7 +23,7 @@ import (
 
 const (
 	MOVIE_COMMENT_FIRST_PAGE_URL_FORMAT = "https://movie.douban.com/subject/%v/comments?start=0&limit=20&sort=time&status=P&percent_type="
-	MOVIE_COMMENT_BASE_URL_FORMAT       = "https://movie.douban.com/subject/%v/comments"
+	MOVIE_COMMENT_BASE_URL_FORMAT       = "https://movie.douban.com/subject/%v/comments%v"
 )
 
 /*MovieComment ...*/
@@ -107,7 +107,7 @@ func (self *MovieComment) OnResponse(url string, resp []byte, params map[string]
 			return
 		}
 
-		nextUrl := MOVIE_COMMENT_BASE_URL_FORMAT + href
+		nextUrl := self.getNextPageBaseUrl(href)
 		spe.Do(self.getResId(), nextUrl, map[string]string{"mid": self.movieID, "title": self.movieTitle, "res": "movie-comment", "page": strconv.Itoa(page + 1)})
 	} else {
 		logErrorf("%v|%v, param error %v, no page, retry", self.movieID, self.movieTitle, params)
@@ -121,6 +121,10 @@ func (self MovieComment) getResId() string {
 
 func (self MovieComment) getFirstPageUrl() string {
 	return fmt.Sprintf(MOVIE_COMMENT_FIRST_PAGE_URL_FORMAT, self.movieID)
+}
+
+func (self MovieComment) getNextPageBaseUrl(href string) string {
+	return fmt.Sprintf(MOVIE_COMMENT_BASE_URL_FORMAT, self.movieID, href)
 }
 
 func (self *MovieComment) addComments(page string, comments []*MovieCommentData) {
