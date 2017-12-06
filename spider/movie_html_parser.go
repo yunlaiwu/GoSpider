@@ -127,10 +127,10 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 				isCommentRate := false
 				rateVal := ""
 				for _, attr := range child.Attr {
-					if attr.Key == "class" && attr.Val == "comment-time" {
+					if strings.TrimSpace(attr.Key) == "class" && strings.TrimSpace(attr.Val) == "comment-time" {
 						isCommentTime = true
 					}
-					if attr.Key == "class" && strings.HasPrefix(attr.Val, "allstar") {
+					if strings.TrimSpace(attr.Key) == "class" && strings.HasPrefix(strings.TrimSpace(attr.Val), "allstar") {
 						isCommentRate = true
 						rateVal = attr.Val
 					}

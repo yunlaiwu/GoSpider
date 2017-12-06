@@ -65,5 +65,6 @@ func Test_ParseMovieComment(t *testing.T) {
 	fmt.Printf("found %v comments\n", len(comments))
 	for _, comment := range comments {
 		fmt.Println(comment)
+		fmt.Println(comment.ToJson())
 	}
 }
