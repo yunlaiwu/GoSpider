@@ -59,11 +59,10 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 		return comments, err
 	}
 
-	commentsNodes := nodes.Find(".mod-bd")
-
 	//comment id
 	ids := make([]string, 0)
-	commentsNodes.Find(".comment-item").Each(func(index int, item *goquery.Node) {
+	commentItemNodes := nodes.Find(".comment-item")
+	commentItemNodes.Each(func(index int, item *goquery.Node) {
 		for _, attr := range item.Attr {
 			if attr.Key == "data-cid" {
 				ids = append(ids, attr.Val)
@@ -79,7 +78,7 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 	}
 
 	//用户名 用户小站
-	commentsNodes.Find(".avatar").Each(func(i int, avatar *goquery.Node) {
+	commentItemNodes.Find(".avatar").Each(func(i int, avatar *goquery.Node) {
 		for _, child := range avatar.Child {
 			//用户名，用户个人主页
 			for _, attr := range child.Attr {
@@ -102,7 +101,7 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 	})
 
 	//有用？
-	commentsNodes.Find(".votes").Each(func(i int, voteCount *goquery.Node) {
+	commentItemNodes.Find(".votes").Each(func(i int, voteCount *goquery.Node) {
 		if len(voteCount.Child) > 0 {
 			if num, err := strconv.Atoi(voteCount.Child[0].Data); err == nil {
 				comments[i].Useful = num
@@ -111,24 +110,38 @@ func ParseMovieComment(htm string) (comments []*MovieCommentData, err error) {
 	})
 
 	//评论内容
-	commentsNodes.Find(".comment-content").Each(func(i int, contentNode *goquery.Node) {
-		if len(contentNode.Child) > 0 {
-			comments[i].Content = contentNode.Child[0].Data
+	commentItemNodes.Find(".comment").Each(func(i int, comment *goquery.Node) {
+		for _, child := range comment.Child {
+			if child.Data == "p" && len(child.Child) > 0 {
+				comments[i].Content = child.Child[0].Data
+			}
 		}
 	})
 
 	//几个星？发表时间
-	commentsNodes.Find(".comment-info").Each(func(i int, infoNode *goquery.Node) {
+	commentItemNodes.Find(".comment-info").Each(func(i int, infoNode *goquery.Node) {
 		for _, child := range infoNode.Child {
-			for _, attr := range child.Attr {
-				if attr.Key == "class" {
-					comments[i].Rate = ParseRating(attr.Val)
-				}
-			}
-
 			if child.Data == "span" {
-				for _, child2 := range child.Child {
-					comments[i].PublishDate = child2.Data
+				isCommentTime := false
+				titleVal := ""
+				isCommentRate := false
+				rateVal := ""
+				for _, attr := range child.Attr {
+					if attr.Key == "class" && attr.Val == "comment-time" {
+						isCommentTime = true
+					}
+					if attr.Key == "class" && strings.HasPrefix(attr.Val, "allstar") {
+						isCommentRate = true
+						rateVal = attr.Val
+					}
+					if attr.Key == "title" {
+						titleVal = attr.Val
+					}
+				}
+				if isCommentTime {
+					comments[i].PublishDate = titleVal
+				} else if isCommentRate {
+					comments[i].Rate = ParseRating(rateVal)
 				}
 			}
 		}
@@ -198,11 +211,11 @@ func ParseNextMovieCommentListPage(resp string) (url string, err error) {
 			for _, attr := range child.Attr {
 				if attr.Key == "class" && attr.Val == "next" {
 					isNext = true
-				}else if attr.Key == "href" {
+				} else if attr.Key == "href" {
 					href = attr.Val
 				}
 			}
-			if isNext == true && len(href) > 0 && strings.HasPrefix(href, "?"){
+			if isNext == true && len(href) > 0 && strings.HasPrefix(href, "?") {
 				return href, nil
 			}
 		}
