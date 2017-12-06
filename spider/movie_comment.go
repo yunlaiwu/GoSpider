@@ -42,7 +42,7 @@ func NewMovieComment(movieID, movieTitle string, baseFolder string) *MovieCommen
 		movieID:    movieID,
 		movieTitle: movieTitle,
 		baseFolder: baseFolder,
-		totalPage:  -1,
+		totalPage:  0,
 	}
 }
 
@@ -85,8 +85,15 @@ func (self *MovieComment) OnResponse(url string, resp []byte, params map[string]
 			return
 		}
 
+		page, err := strconv.Atoi(p)
+		if err != nil {
+			logErrorf("%v|%v, parse page %v fail, %v", self.movieID, self.movieTitle, p, err)
+			self.OnFinished()
+			return
+		}
+
 		if len(comments) > 0 {
-			self.addComments(p, comments)
+			self.addComments(page, comments)
 		} else {
 			logErrorf("%v|%v, no comments in page %v, finish, %v", self.movieID, self.movieTitle, p, err)
 			self.OnFinished()
@@ -96,13 +103,6 @@ func (self *MovieComment) OnResponse(url string, resp []byte, params map[string]
 		href, err := ParseNextMovieCommentListPage(string(resp))
 		if err != nil || len(href) == 0 || !strings.HasPrefix(href, "?") {
 			logErrorf("%v|%v, parse html to get next page fail, %v", self.movieID, self.movieTitle, err)
-			self.OnFinished()
-			return
-		}
-
-		page, err := strconv.Atoi(p)
-		if err != nil {
-			logErrorf("%v|%v, parse page %v fail, %v", self.movieID, self.movieTitle, p, err)
 			self.OnFinished()
 			return
 		}
@@ -127,11 +127,16 @@ func (self MovieComment) getNextPageBaseUrl(href string) string {
 	return fmt.Sprintf(MOVIE_COMMENT_BASE_URL_FORMAT, self.movieID, href)
 }
 
-func (self *MovieComment) addComments(page string, comments []*MovieCommentData) {
+func (self *MovieComment) addComments(page int, comments []*MovieCommentData) {
 	logInfof("MovieComment:addComments, add %d comments for page %v", len(comments), page)
-	_, loaded := self.pageMap.LoadOrStore(page, comments)
+	_, loaded := self.pageMap.LoadOrStore(strconv.Itoa(page), comments)
 	if loaded == true {
 		logErrorf("%v|%v, page %v maybe downloaed more than once", self.movieID, self.movieTitle, page)
+	}
+
+	//totalPage保存最大的页码
+	if page > self.totalPage {
+		self.totalPage = page
 	}
 }
 
