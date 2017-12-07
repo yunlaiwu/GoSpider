@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/opesun/goquery"
-	"golang.org/x/net/html"
 )
 
 /*MovieCommentData 电影短评数据结构 */
@@ -391,17 +390,6 @@ func ParseMovieReviewListPage(htm string) (reviews []*MovieReviewData, err error
 	}
 
 	return reviews, nil
-}
-
-/*
- * 从电影短评分页列表页，获取是否有下页，及下页的url
- */
-func getContent(n *html.Node) (content string) {
-	content += n.Data
-	//for _, child := range n.Child {
-	//content += getContent(child)
-	//}
-	return content
 }
 
 /*
