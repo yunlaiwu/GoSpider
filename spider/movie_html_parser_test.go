@@ -73,6 +73,7 @@ func Test_ParseMovieComment(t *testing.T) {
 }
 */
 
+/*
 func Test_ParseMovieReviewListPage(t *testing.T) {
 	//htm, err := spider.HttpGet("https://movie.douban.com/subject/27000061/reviews?sort=time&start=0")
 	htm, err := spider.HttpGet("https://movie.douban.com/subject/27034748/reviews?sort=time&start=0")
@@ -93,13 +94,14 @@ func Test_ParseMovieReviewListPage(t *testing.T) {
 		//fmt.Println(review.ToJson())
 	}
 }
+*/
 
-/*
 func Test_ParseMovieReviewDetailPage(t *testing.T) {
 	details := make(map[string]string)
-	details["https://movie.douban.com/review/8832330/"] = "这是某个没有太多支线的3A大作录像"
-	details["https://movie.douban.com/review/8894086/"] = "或许你会想了解的电影里的墨西哥元素"
-	details["https://movie.douban.com/review/7553013/"] = "混蛋"
+	//details["https://movie.douban.com/review/8832330/"] = "这是某个没有太多支线的3A大作录像"
+	//details["https://movie.douban.com/review/8894086/"] = "或许你会想了解的电影里的墨西哥元素"
+	//details["https://movie.douban.com/review/7553013/"] = "混蛋"
+	details["https://movie.douban.com/review/7659921/"] = "也没有那么差劲嘛"
 
 	for url, title := range details {
 		htm, err := spider.HttpGet(url)
@@ -107,7 +109,7 @@ func Test_ParseMovieReviewDetailPage(t *testing.T) {
 			fmt.Println(err)
 			t.FailNow()
 		}
-
+		fmt.Println(string(htm))
 		detail, err := spider.ParseMovieReviewDetailPage(string(htm))
 		if err != nil {
 			fmt.Println(err)
@@ -118,7 +120,6 @@ func Test_ParseMovieReviewDetailPage(t *testing.T) {
 		}
 	}
 }
-*/
 
 /*
 func Test_ParseTotalReviews(t *testing.T) {
