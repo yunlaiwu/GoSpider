@@ -493,24 +493,3 @@ func ParseTotalReviews(resp string) (totalComments int, err error) {
 
 	return 0, nil
 }
-
-/*
-fmt.Println("info data:", item.Data)
-        for _, attr := range item.Attr {
-            fmt.Println("info attr:", attr.Key, attr.Val)
-        }
-
-        for _, child := range item.Child {
-            fmt.Println("info child data:", child.Data)
-            for _, attr := range child.Attr {
-                fmt.Println("info child attr:", attr.Key, attr.Val)
-            }
-
-            for _, child2 := range child.Child {
-                fmt.Println("info child2 attr:", child2.Data)
-                for _, attr := range child2.Attr {
-                    fmt.Println("info child2 attr:", attr.Key, attr.Val)
-                }
-            }
-        }
-*/

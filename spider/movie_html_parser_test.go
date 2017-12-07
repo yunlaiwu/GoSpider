@@ -95,10 +95,11 @@ func Test_ParseMovieReviewListPage(t *testing.T) {
 }
 */
 
+/*
 func Test_ParseMovieReviewListPage(t *testing.T) {
 	//htm, err := spider.HttpGet("https://movie.douban.com/review/8832330/")
 	//htm, err := spider.HttpGet("https://movie.douban.com/review/8894086/")
-	htm, err := spider.HttpGet("https://movie.douban.com/review/8940186/")
+	htm, err := spider.HttpGet("https://movie.douban.com/review/8965733/")
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -110,5 +111,22 @@ func Test_ParseMovieReviewListPage(t *testing.T) {
 		t.FailNow()
 	} else {
 		t.Log(detail)
+	}
+}
+*/
+
+func Test_ParseTotalReviews(t *testing.T) {
+	htm, err := spider.HttpGet("https://movie.douban.com/subject/1427290/reviews/")
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	}
+
+	total, err := spider.ParseTotalReviews(string(htm))
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	} else {
+		fmt.Println("total:", total)
 	}
 }

@@ -99,10 +99,8 @@ func (self *MovieReview) OnResponse(url string, resp []byte, params map[string]s
 		self.reviewMapLock.Lock()
 		defer self.reviewMapLock.Unlock()
 		if review, exist := self.reviewMap[reviewId]; exist && review != nil {
-			if content, useful, useless, err := ParseReviewJson(resp); err == nil {
+			if content, err := ParseMovieReviewDetailPage(string(resp)); err == nil {
 				review.Content = content
-				review.Useful = useful
-				review.Useless = useless
 				self.totalFinishedReview++
 
 				//检查是否完成

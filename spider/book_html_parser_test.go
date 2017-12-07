@@ -71,7 +71,7 @@ func Test_ParseBookReview2(t *testing.T) {
     if err != nil {
         t.FailNow()
     }
-    spider.ParseReviewJson(htm)
+    spider.ParseBookReviewJson(htm)
 }
 */
 
@@ -119,7 +119,7 @@ func Test_ParseBookReviewFullJson(t *testing.T) {
     fmt.Println(string(htm))
     fmt.Println()
 
-    content, useful, useless, err := spider.ParseReviewJson(htm)
+    content, useful, useless, err := spider.ParseBookReviewJson(htm)
     if err != nil {
         fmt.Println("parse json failed", err)
         return
