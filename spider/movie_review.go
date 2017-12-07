@@ -189,7 +189,7 @@ func (self *MovieReview) addPageReviews(page string, reviews []*MovieReviewData)
 	}
 
 	for _, review := range reviews {
-		spe.Do(self.getResId(), self.getDetailUrl(review.ReviewID), map[string]string{"mid": self.movieId, "title": self.movieTitle, "res": "movie-review", "rid": review.ReviewID, "page": page})
+		spe.Do(self.getResId(), self.getDetailUrl(review.ReviewID), map[string]string{"mid": self.movieId, "title": self.movieTitle, "res": "movie-review", "rid": review.ReviewID})
 	}
 }
 

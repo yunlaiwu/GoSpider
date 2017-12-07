@@ -417,7 +417,21 @@ func ParseMovieReviewDetailPage(resp string) (content string, err error) {
 					}
 				}
 				content += data + "\n"
+			} else if child.Data != "br" && child.Data != "div" && child.Data != "h2" {
+				content += child.Data + "\n"
 			}
+			/*
+							fmt.Printf("child.Data %v\n", child.Data)
+							for _, attr := range child.Attr {
+								fmt.Printf("child.Attr Key:%v, Val:%v\n", attr.Key, attr.Val)
+							}
+							for _, child2 := range child.Child {
+								fmt.Printf("child2.Data %v\n", child2.Data)
+								for _, attr2 := range child2.Attr {
+									fmt.Printf("child2.Attr Key:%v, Val:%v\n", attr2.Key, attr2.Val)
+								}
+				            }
+			*/
 		}
 	})
 
