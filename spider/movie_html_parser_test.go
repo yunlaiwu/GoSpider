@@ -116,12 +116,12 @@ func Test_ParseMovieReviewListPage(t *testing.T) {
 */
 
 func Test_ParseTotalReviews(t *testing.T) {
-	htm, err := spider.HttpGet("https://movie.douban.com/subject/1427290/reviews/")
+	htm, err := spider.HttpGet("https://movie.douban.com/subject/10345617/reviews?sort=time&start=0")
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
 	}
-
+	//fmt.Println(string(htm))
 	total, err := spider.ParseTotalReviews(string(htm))
 	if err != nil {
 		fmt.Println(err)
