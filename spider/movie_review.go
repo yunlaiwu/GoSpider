@@ -193,7 +193,7 @@ func (self *MovieReview) addPageReviews(page string, reviews []*MovieReviewData)
 }
 
 func (self MovieReview) saveToFile() error {
-	fullpath := GetFullPath(filepath.Join(self.baseFolder, "./movie-review/"))
+	fullpath := GetFullPath(self.baseFolder)
 	err := CreateDirIfNotExist(fullpath)
 	if err != nil {
 		logErrorf("MovieReview:saveToFile, failed to create folder %v, err:", fullpath, err)
