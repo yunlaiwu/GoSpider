@@ -117,8 +117,6 @@ func (self *MovieReview) OnResponse(url string, resp []byte, params map[string]s
 					logErrorf("%v|%v, parse html for review %v no permission", self.movieId, self.movieTitle, reviewId)
 					//这种情况是这个影评的详情无权访问，书评的例子：https://book.douban.com/j/review/5440030/full
 					review.Content = ""
-					review.Useful = 0
-					review.Useless = 0
 					self.totalFinishedReview++
 
 					//检查是否完成
