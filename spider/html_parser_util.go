@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/opesun/goquery"
 )
 
 /*ParseUserIDFromAvatar does 从用户头像url中获取用户ID*/
@@ -123,4 +125,27 @@ func ParseReviewCount(s string) (count int, err error) {
 		return 0, errors.New("failed to find \")\" ....")
 	}
 	return strconv.Atoi(parts2[0])
+}
+
+func GetPageTitle(resp string) (title string, err error) {
+	nodes, err := goquery.ParseString(resp)
+	if err != nil {
+		fmt.Println("GetPageTitle: failed parse html")
+		return title, err
+	}
+
+	found := false
+	nodes.Find("head").Each(func(index int, item *goquery.Node) {
+		for _, child := range item.Child {
+			if child.Data == "title" && len(child.Child) > 0 {
+				title = child.Child[0].Data
+				found = true
+				break
+			}
+		}
+	})
+	if found {
+		return title, nil
+	}
+	return title, errors.New("GetPageTitle: cannot found title")
 }

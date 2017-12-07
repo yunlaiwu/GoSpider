@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 const (
@@ -113,7 +112,8 @@ func (self *MovieReview) OnResponse(url string, resp []byte, params map[string]s
 				logErrorf("%v|%v, parse html for review %v failed, %v, url:%v", self.movieId, self.movieTitle, reviewId, err, url)
 				// 豆瓣有可能返回错误信息，由于UA或者访问过多什么原因，这里重试
 				respString := string(resp)
-				if strings.Contains(respString, "<html") && strings.Contains(respString, "<title>") && strings.Contains(respString, "没有访问权限") {
+				pageTitle, _ := GetPageTitle(respString)
+				if pageTitle == "没有访问权限" || pageTitle == "页面不存在" {
 					logErrorf("%v|%v, parse html for review %v no permission", self.movieId, self.movieTitle, reviewId)
 					//这种情况是这个影评的详情无权访问，书评的例子：https://book.douban.com/j/review/5440030/full
 					review.Content = ""

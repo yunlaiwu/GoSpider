@@ -96,12 +96,14 @@ func Test_ParseMovieReviewListPage(t *testing.T) {
 }
 */
 
+/*
 func Test_ParseMovieReviewDetailPage(t *testing.T) {
 	details := make(map[string]string)
 	//details["https://movie.douban.com/review/8832330/"] = "这是某个没有太多支线的3A大作录像"
 	//details["https://movie.douban.com/review/8894086/"] = "或许你会想了解的电影里的墨西哥元素"
 	//details["https://movie.douban.com/review/7553013/"] = "混蛋"
-	details["https://movie.douban.com/review/7659921/"] = "也没有那么差劲嘛"
+	//details["https://movie.douban.com/review/7659921/"] = "也没有那么差劲嘛"
+	details["https://movie.douban.com/review/7657695/"] = "如果你有看过前面007的全部电影，你会会心一笑"
 
 	for url, title := range details {
 		htm, err := spider.HttpGet(url)
@@ -120,6 +122,7 @@ func Test_ParseMovieReviewDetailPage(t *testing.T) {
 		}
 	}
 }
+*/
 
 /*
 func Test_ParseTotalReviews(t *testing.T) {
@@ -138,3 +141,28 @@ func Test_ParseTotalReviews(t *testing.T) {
 	}
 }
 */
+
+func Test_GetPageTitle(t *testing.T) {
+	details := make(map[string]string)
+	//details["https://movie.douban.com/review/8832330/"] = "这是某个没有太多支线的3A大作录像"
+	//details["https://movie.douban.com/review/8894086/"] = "或许你会想了解的电影里的墨西哥元素"
+	//details["https://movie.douban.com/review/7553013/"] = "混蛋"
+	//details["https://movie.douban.com/review/7659921/"] = "也没有那么差劲嘛"
+	details["https://movie.douban.com/review/7657695/"] = "如果你有看过前面007的全部电影，你会会心一笑"
+
+	for url, _ := range details {
+		htm, err := spider.HttpGet(url)
+		if err != nil {
+			fmt.Println(err)
+			t.FailNow()
+		}
+
+		title, err := spider.GetPageTitle(string(htm))
+		if err != nil {
+			fmt.Println(err)
+			t.FailNow()
+		} else {
+			t.Log(title)
+		}
+	}
+}
