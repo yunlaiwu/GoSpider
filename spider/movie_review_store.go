@@ -51,9 +51,8 @@ func (self *MovieReviewStore) Start(moviesFile, saveDir string) (err error) {
 	if err != nil {
 		logErrorf("MovieReviewStore:Start, failed to read moviesFile %v", err)
 		return err
-	} else {
-		logInfof("we got %v movies listed in config file", lines.Len())
 	}
+
 	logInfof("we got %v movies in task file", lines.Len())
 
 	midDone := loadDoneTask(self.saveDir)
