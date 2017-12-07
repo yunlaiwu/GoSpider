@@ -154,6 +154,9 @@ func IsMAC() bool {
 }
 
 func loadDoneTask(dirpath string) (ids map[string]bool) {
+	if DirExist(dirpath) == false {
+		return ids
+	}
 	ids = make(map[string]bool)
 	totalFile := 0
 	filepath.Walk(dirpath, func(path string, f os.FileInfo, err error) error {
@@ -161,7 +164,7 @@ func loadDoneTask(dirpath string) (ids map[string]bool) {
 			logErrorf("loadDoneTask, invalid file or directory [%v], %v", f.Name(), err)
 			return err
 		}
-		totalFile += 1
+		totalFile++
 		if strings.HasSuffix(path, ".txt") == false {
 			logErrorf("loadDoneTask, not txt file, %v", f.Name())
 			return err
