@@ -26,7 +26,7 @@ func main() {
 	const example = "usage: spider -restype=book-comment or book-review -resfile=./book-comment.txt -savedir=./book"
 
 	switch *restype {
-	case "book-comment", "book-review", "movie-comment":
+	case "book-comment", "book-review", "movie-comment", "movie-review":
 		fmt.Println("restype:", *restype)
 	default:
 		fmt.Println("invalid restype")
@@ -66,6 +66,8 @@ func main() {
 			storeMgr = NewBookReviewStore()
 		case "movie-comment":
 			storeMgr = NewMovieCommentStore()
+		case "movie-review":
+			storeMgr = NewMovieReviewStore()
 		}
 		storeMgr.Start(*resfile, *savedir)
 	}()

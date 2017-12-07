@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/opesun/goquery"
+	"golang.org/x/net/html"
 )
 
 /*MovieCommentData 电影短评数据结构 */
@@ -47,6 +48,45 @@ func (self MovieCommentData) ToJson() (string, error) {
 		return "", err
 	}
 	return string(j), nil
+}
+
+/*MovieReviewData 电影影评数据结构 */
+type MovieReviewData struct {
+	ReviewID    string `json:"mrid"`
+	UserId      string `json:"userid"`
+	UserName    string `json:"username"`
+	UserPage    string `json:"userpage"`
+	UserAvatar  string `json:"useravatar"`
+	ReviewTitle string `json:"title"`
+	PublishDate string `json:"publish"`
+	Rate        int    `json:"rate"`
+	Content     string `json:"content"`
+	Useful      int    `json:"useful"`
+	Useless     int    `json:"useless"`
+}
+
+/*NewMovieReviewData MovieReviewData */
+func NewMovieReviewData() *MovieReviewData {
+	return &MovieReviewData{}
+}
+
+/*String ... */
+func (self MovieReviewData) String() string {
+	return fmt.Sprintf("电影影评 %v: 用户:%v|%v|%v|%v, 发表日期:%v, 评分:%v, 有用:%v|%v, 标题:%v, 内容:%v", self.ReviewID, self.UserName, self.UserId, self.UserPage, self.UserAvatar, self.PublishDate, self.Rate, self.Useful, self.Useless, self.ReviewTitle, self.Content)
+}
+
+/*ToJson ... */
+func (self MovieReviewData) ToJson() (string, error) {
+	j, err := json.Marshal(self)
+	if err != nil {
+		return "", err
+	}
+	return string(j), nil
+}
+
+/*GetId ... */
+func (self MovieReviewData) GetId() string {
+	return self.ReviewID
 }
 
 /*ParseMovieComment
@@ -221,4 +261,181 @@ func ParseNextMovieCommentListPage(resp string) (url string, err error) {
 		}
 	}
 	return "", errors.New("ParseNextMovieCommentListPage: failed to find next page")
+}
+
+/*
+ * 豆瓣电影影评列表页，https://movie.douban.com/subject/26764514/reviews?sort=time
+ * 这里获取影评列表，但完整评论是折叠的而且是不完全的
+ * 从这个获取详情，与图书评论一样，https://book.douban.com/j/review/8955793/full
+ * liujia: 为了少缓存东西，从书评的分页page中获取每个书评的id，然后从书评详情中抓取
+ */
+func ParseMovieReviewListPage(htm string) (reviews []*MovieReviewData, err error) {
+	nodes, err := goquery.ParseString(htm)
+	if err != nil {
+		fmt.Println("ParseMovieReviewListPage: failed parse html")
+		return reviews, err
+	}
+
+	reviewNodes := nodes.Find(".review-list")
+
+	//review id
+	reviewIds := make([]string, 0)
+	reviewNodes.Find(".main").Each(func(index int, item *goquery.Node) {
+		for _, attr := range item.Attr {
+			if attr.Key == "id" {
+				reviewIds = append(reviewIds, attr.Val)
+			}
+		}
+	})
+
+	reviews = make([]*MovieReviewData, len(reviewIds))
+	for i := range reviews {
+		review := NewMovieReviewData()
+		review.ReviewID = reviewIds[i]
+		reviews[i] = review
+	}
+
+	//评论title
+	reviewNodes.Find(".main-bd").Each(func(i int, item *goquery.Node) {
+		for _, child := range item.Child {
+			if child.Data == "h2" {
+				child2 := child.Child[0]
+				if len(child2.Child) > 0 {
+					reviews[i].ReviewTitle = child2.Child[0].Data
+				}
+			}
+		}
+	})
+
+	//有用无用？
+	reviewNodes.Find(".action").Each(func(i int, item *goquery.Node) {
+		for _, child := range item.Child {
+			for _, attr := range child.Attr {
+				if strings.TrimSpace(attr.Key) == "title" && (strings.TrimSpace(attr.Val) == "有用" || strings.TrimSpace(attr.Val) == "没用") {
+					for _, child2 := range child.Child {
+						if strings.TrimSpace(child2.Data) == "span" {
+							if len(child2.Child) > 0 {
+								val := strings.TrimSpace(child2.Child[0].Data)
+								count := 0
+								if len(val) > 0 {
+									count, _ = strconv.Atoi(val)
+								}
+
+								if strings.TrimSpace(attr.Val) == "有用" {
+									reviews[i].Useful = count
+								} else if strings.TrimSpace(attr.Val) == "没用" {
+									reviews[i].Useless = count
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	})
+
+	//用户id，头像，个人站点，名字，发布时间，评分
+	reviewNodes.Find(".main-hd").Each(func(i int, item *goquery.Node) {
+		for _, child := range item.Child {
+			isAvatar := false
+			isName := false
+			href := ""
+
+			for _, attr := range child.Attr {
+				if strings.TrimSpace(attr.Key) == "class" && strings.TrimSpace(attr.Val) == "avator" {
+					isAvatar = true
+				}
+
+				if strings.TrimSpace(attr.Key) == "class" && strings.TrimSpace(attr.Val) == "name" {
+					isName = true
+				}
+
+				if strings.TrimSpace(attr.Key) == "class" && strings.HasPrefix(strings.TrimSpace(attr.Val), "allstar") {
+					reviews[i].Rate = ParseRating(strings.TrimSpace(attr.Val))
+				}
+
+				if strings.TrimSpace(attr.Key) == "class" && strings.TrimSpace(attr.Val) == "main-meta" && len(child.Child) > 0 {
+					reviews[i].PublishDate = child.Child[0].Data
+				}
+
+				if strings.TrimSpace(attr.Key) == "href" {
+					href = strings.TrimSpace(attr.Val)
+				}
+			}
+
+			if isAvatar {
+				for _, child2 := range child.Child {
+					for _, attr2 := range child2.Attr {
+						if strings.TrimSpace(attr2.Key) == "src" {
+							reviews[i].UserAvatar = strings.TrimSpace(attr2.Val)
+						}
+					}
+				}
+			} else if isName {
+				reviews[i].UserPage = href
+				if len(child.Child) > 0 {
+					reviews[i].UserName = child.Child[0].Data
+				}
+			}
+		}
+	})
+
+	//从用户主页和用户头像中解析出用户id
+	for _, review := range reviews {
+		userID, err := ParseUserID(review.UserAvatar, review.UserPage)
+		if err == nil {
+			review.UserId = userID
+		} else {
+			logErrorf("failed to get userID, avatar:%v, page:%v", review.UserAvatar, review.UserPage)
+		}
+	}
+
+	return reviews, nil
+}
+
+/*
+ * 从电影短评分页列表页，获取是否有下页，及下页的url
+ */
+func getContent(n *html.Node) (content string) {
+	content += n.Data
+	//for _, child := range n.Child {
+	//content += getContent(child)
+	//}
+	return content
+}
+
+/*
+ * 从电影的影评详情页解析出影评文本来(只要文本，不要图片信息)
+ * https://movie.douban.com/review/8940186/
+ */
+func ParseMovieReviewDetailPage(resp string) (content string, err error) {
+	nodes, err := goquery.ParseString(resp)
+	if err != nil {
+		fmt.Println("ParseMovieReviewDetailPage: failed parse html")
+		return "", err
+	}
+
+	nodes.Find(".review-content").Each(func(i int, item *goquery.Node) {
+		for _, child := range item.Child {
+			if child.Data == "p" || child.Data == "blockquote" {
+				data := ""
+				for _, child2 := range child.Child {
+					if len(child2.Child) == 0 {
+						data += child2.Data
+					} else {
+						for _, child3 := range child2.Child {
+							data += child3.Data
+						}
+					}
+				}
+				content += data + "\n"
+			}
+		}
+	})
+
+	if len(content) > 0 {
+		return content, nil
+	}
+
+	return "", errors.New("failed to get movie review")
 }
