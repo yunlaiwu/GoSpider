@@ -89,7 +89,11 @@ func (self *MovieReview) OnResponse(url string, resp []byte, params map[string]s
 
 		reviews, err := ParseMovieReviewListPage(string(resp))
 		if len(reviews) == 0 || err != nil {
-			logErrorf("%v|%v, parse html for reviews failed, %v", self.movieId, self.movieTitle, err)
+			if len(reviews) == 0 {
+				logErrorf("%v|%v, no reviews for this movie", self.movieId, self.movieTitle)
+			} else {
+				logErrorf("%v|%v, parse html for reviews failed, %v", self.movieId, self.movieTitle, err)
+			}
 			self.OnFinished()
 		} else {
 			self.addPageReviews(page, reviews)
