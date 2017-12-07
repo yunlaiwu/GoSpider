@@ -73,9 +73,9 @@ func Test_ParseMovieComment(t *testing.T) {
 }
 */
 
-/*
 func Test_ParseMovieReviewListPage(t *testing.T) {
-	htm, err := spider.HttpGet("https://movie.douban.com/subject/27000061/reviews?sort=time&start=0")
+	//htm, err := spider.HttpGet("https://movie.douban.com/subject/27000061/reviews?sort=time&start=0")
+	htm, err := spider.HttpGet("https://movie.douban.com/subject/27034748/reviews?sort=time&start=0")
 	if err != nil {
 		fmt.Println(err)
 		t.FailNow()
@@ -93,8 +93,8 @@ func Test_ParseMovieReviewListPage(t *testing.T) {
 		//fmt.Println(review.ToJson())
 	}
 }
-*/
 
+/*
 func Test_ParseMovieReviewDetailPage(t *testing.T) {
 	details := make(map[string]string)
 	details["https://movie.douban.com/review/8832330/"] = "这是某个没有太多支线的3A大作录像"
@@ -118,6 +118,7 @@ func Test_ParseMovieReviewDetailPage(t *testing.T) {
 		}
 	}
 }
+*/
 
 /*
 func Test_ParseTotalReviews(t *testing.T) {
