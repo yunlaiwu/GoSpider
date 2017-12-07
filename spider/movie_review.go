@@ -106,10 +106,11 @@ func (self *MovieReview) OnResponse(url string, resp []byte, params map[string]s
 				//检查是否完成
 				self.checkFinish()
 			} else {
-				logErrorf("%v|%v, parse html for review %v failed, %v, %v", self.movieId, self.movieTitle, reviewId, err, string(resp))
+				logErrorf("%v|%v, parse html for review %v failed, %v, url:%v", self.movieId, self.movieTitle, reviewId, err, url)
 				// 豆瓣有可能返回错误信息，由于UA或者访问过多什么原因，这里重试
 				respString := string(resp)
 				if strings.Contains(respString, "<html") && strings.Contains(respString, "<title>") && strings.Contains(respString, "没有访问权限") {
+					logErrorf("%v|%v, parse html for review %v no permission", self.movieId, self.movieTitle, reviewId)
 					//这种情况是这个影评的详情无权访问，书评的例子：https://book.douban.com/j/review/5440030/full
 					review.Content = ""
 					review.Useful = 0
@@ -188,7 +189,7 @@ func (self *MovieReview) addPageReviews(page string, reviews []*MovieReviewData)
 	}
 
 	for _, review := range reviews {
-		spe.Do(self.getResId(), self.getDetailUrl(review.ReviewID), map[string]string{"mid": self.movieId, "title": self.movieTitle, "res": "movie-review", "rid": review.ReviewID})
+		spe.Do(self.getResId(), self.getDetailUrl(review.ReviewID), map[string]string{"mid": self.movieId, "title": self.movieTitle, "res": "movie-review", "rid": review.ReviewID, "page": page})
 	}
 }
 
